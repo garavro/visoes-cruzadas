@@ -1,0 +1,6389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Visões Cruzadas Online</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0b1020;--panel:#121a2d;--line:#2a3856;--text:#eef4ff;--yellow:#ffd84a;--red:#ff5b68;--green:#55dc88;--muted:#9ba9c2}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;touch-action:none;overscroll-behavior:none}
+button,input{font:inherit}button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer;background:#e9eef8;color:#11182a;min-height:44px}button.secondary{background:#24324e;color:#fff}button.yellow{background:var(--yellow)}button.red{background:var(--red);color:#fff}
+input{width:100%;padding:14px;border-radius:10px;border:1px solid #31415f;background:#091120;color:#fff;text-transform:uppercase;font-size:20px;letter-spacing:4px;text-align:center}
+.screen{display:none;width:100%;height:100%}.screen.active{display:flex}#menu{align-items:center;justify-content:center;padding:16px;overflow:auto;touch-action:pan-y}.card{width:min(720px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 25px 80px rgba(0,0,0,.35)}h1{margin:0 0 8px;font-size:clamp(25px,5vw,34px)}h2{margin:0 0 12px}p{line-height:1.45}.muted{color:var(--muted)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.box{border:1px solid var(--line);border-radius:14px;padding:16px;background:#0e1628}.hidden{display:none!important}.status{margin-top:12px;padding:11px;border-radius:9px;background:#0c1424;color:#c6d3e8;font-size:14px}.roomCode{font-size:42px;letter-spacing:8px;font-weight:900;text-align:center;color:var(--yellow);margin:18px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#game{flex-direction:column}#hud{min-height:66px;padding:8px 12px;background:#10182a;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}#leftHud{text-align:left;font-size:13px}#rightHud{text-align:right;font-size:13px}#centerHud{text-align:center;font-size:13px}#gameArea{flex:1;min-height:0;position:relative;overflow:hidden}canvas{width:100%;height:100%;display:block;background:#151d2b}#gameMsg{position:absolute;left:50%;top:10px;transform:translateX(-50%);max-width:80%;padding:7px 11px;border-radius:9px;background:rgba(0,0,0,.48);font-size:12px;text-align:center;pointer-events:none}
+#touchControls{position:absolute;inset:auto 0 0 0;height:128px;display:none;justify-content:space-between;align-items:flex-end;padding:8px 14px max(10px,env(safe-area-inset-bottom));pointer-events:none}.touchGroup{display:flex;gap:12px;pointer-events:auto}.touchBtn{width:72px;height:72px;border-radius:50%;padding:0;display:grid;place-items:center;font-size:30px;font-weight:900;border:2px solid rgba(255,255,255,.24);background:rgba(29,41,65,.84);color:#fff;user-select:none}.touchBtn.jump{width:86px;height:86px;font-size:16px}.touchBtn.active{transform:scale(.94);filter:brightness(1.25)}body.role-host .touchBtn.jump{background:rgba(255,216,74,.88);color:#111}body.role-client .touchBtn.jump{background:rgba(255,91,104,.9)}
+#overlay{position:absolute;inset:0;background:rgba(3,7,15,.74);display:none;place-items:center;z-index:20}#overlay .card{width:min(420px,calc(100% - 28px));text-align:center}kbd{background:#25334f;border:1px solid #3c4c6d;border-radius:5px;padding:2px 6px}
+@media(hover:none) and (pointer:coarse){#touchControls{display:flex}#controlText{display:none}}@media(max-width:700px){.grid2{grid-template-columns:1fr}#hud{grid-template-columns:1fr 1fr;min-height:78px}#centerHud{grid-column:1/3;grid-row:1}#leftHud,#rightHud{grid-row:2;font-size:11px}}@media(max-height:520px) and (orientation:landscape){#hud{min-height:44px;padding:4px 10px}#touchControls{height:100px}.touchBtn{width:62px;height:62px}.touchBtn.jump{width:72px;height:72px}}
+
+#mapPanel{
+  position:absolute;
+  top:48px;
+  right:10px;
+  z-index:15;
+  width:min(270px,calc(100% - 20px));
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(9,17,32,.88);
+  backdrop-filter:blur(6px);
+  font-size:12px;
+}
+#mapPanel.client{display:none}
+#mapPanel .seed{
+  font-family:monospace;
+  font-size:14px;
+  font-weight:800;
+  color:#a8c7ff;
+}
+#mapPanel .ok{color:#8ff0b1}
+#mapPanel .bad{color:#ff8a94}
+#mapPanel .actions{
+  display:flex;
+  gap:7px;
+  margin-top:8px;
+}
+#mapPanel button{
+  flex:1;
+  min-height:38px;
+  padding:8px;
+  font-size:12px;
+}
+#approveMapBtn{
+  background:#55dc88;
+  color:#08130d;
+}
+#rejectMapBtn{
+  background:#ff5b68;
+  color:#fff;
+}
+#approveMapBtn:disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}
+@media(max-width:700px){
+  #mapPanel{
+    top:62px;
+    width:220px;
+  }
+}
+
+
+/* COUCH CO-OP / OFFLINE */
+#offlineViews{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;gap:3px;background:#050810}
+.offlineView{position:relative;min-width:0;min-height:0;overflow:hidden;background:#151d2b}
+.offlineView canvas{width:100%;height:100%;display:block}
+.offlineLabel{position:absolute;top:10px;left:10px;z-index:8;padding:6px 9px;border-radius:8px;background:rgba(0,0,0,.52);font-size:12px;font-weight:800;pointer-events:none}
+.offlineLabel.p1{color:var(--yellow)}.offlineLabel.p2{color:var(--red)}
+.offlineTouchControls{position:absolute;left:0;right:0;bottom:0;z-index:9;display:none;justify-content:space-between;align-items:flex-end;padding:8px 10px max(8px,env(safe-area-inset-bottom));pointer-events:none}
+.offlineTouchGroup{display:flex;gap:7px;pointer-events:auto}
+.offlineTouchBtn{width:54px;height:54px;min-height:0;padding:0;border-radius:50%;display:grid;place-items:center;background:rgba(29,41,65,.88);color:#fff;border:2px solid rgba(255,255,255,.25);font-size:23px;user-select:none;-webkit-user-select:none}
+.offlineTouchBtn.jump{width:64px;height:64px;font-size:11px}#offlineP1Jump{background:rgba(255,216,74,.9);color:#111}#offlineP2Jump{background:rgba(255,91,104,.92);color:#fff}.offlineTouchBtn.active{transform:scale(.93);filter:brightness(1.2)}
+body.offline-mode #touchControls{display:none!important}body.offline-mode #mapPanel{top:8px;left:50%;right:auto;transform:translateX(-50%);width:min(370px,46vw);max-height:145px;overflow:auto;background:rgba(9,17,32,.82)}body.offline-mode #gameMsg{display:none}
+#offlineHint{margin-top:14px;text-align:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:#0d1627}
+@media(hover:none) and (pointer:coarse){body.offline-mode .offlineTouchControls{display:flex}}
+@media(max-width:700px) and (orientation:portrait){#offlineViews{grid-template-columns:1fr;grid-template-rows:1fr 1fr}body.offline-mode #mapPanel{width:min(320px,86vw);max-height:110px;font-size:10px}.offlineTouchBtn{width:46px;height:46px;font-size:19px}.offlineTouchBtn.jump{width:54px;height:54px;font-size:9px}}
+@media(max-height:520px) and (orientation:landscape){body.offline-mode #mapPanel{max-height:100px;font-size:10px}.offlineTouchBtn{width:47px;height:47px}.offlineTouchBtn.jump{width:56px;height:56px}}
+
+/* ==========================================================
+   MODO 2 — SOBREVIVÊNCIA
+   ========================================================== */
+#survivalTimer{
+  display:inline-block;
+  margin-top:3px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+  font-family:monospace;
+  font-size:15px;
+  letter-spacing:1px;
+}
+
+#survivalTimer.hidden{
+  display:none;
+}
+
+.survivalModeButton{
+  width:100%;
+  margin-top:8px;
+  background:#6e78ff;
+  color:#fff;
+}
+
+#survivalLegend{
+  display:none;
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  z-index:7;
+  padding:7px 10px;
+  border-radius:9px;
+  background:rgba(0,0,0,.48);
+  font-size:11px;
+  pointer-events:none;
+}
+
+body.survival-mode #survivalLegend{
+  display:block;
+}
+
+body.survival-mode #mapPanel{
+  display:none!important;
+}
+
+body.survival-mode #gameMsg{
+  top:8px;
+}
+
+@media(max-width:700px){
+  #survivalLegend{
+    font-size:9px;
+    max-width:180px;
+  }
+}
+
+/* ==========================================================
+   V8.0 — LOBBY MULTIPLAYER DINÂMICO
+   ========================================================== */
+#multiplayerLobbyInfo{
+  margin-top:14px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#0d1627;
+}
+
+#playerCountBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:36px;
+  height:30px;
+  padding:0 10px;
+  border-radius:999px;
+  background:#263552;
+  font-weight:900;
+}
+
+#playerList{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+
+.playerLobbyCard{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#101a2c;
+}
+
+.playerColorDot{
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.82);
+  box-shadow:0 0 12px rgba(255,255,255,.12);
+}
+
+.playerLobbyMeta{
+  min-width:0;
+}
+
+.playerLobbyName{
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.playerLobbyId{
+  font-size:10px;
+  opacity:.6;
+  font-family:monospace;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#startLobbyGame:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+#multiplayerStageNotice{
+  margin-top:10px;
+  font-size:11px;
+  line-height:1.4;
+}
+</style>
+</head>
+<body>
+<section id="menu" class="screen active"><div class="card"><h1>VISÕES CRUZADAS</h1><p class="muted">Escolha entre multiplayer online ou Couch Co-op no mesmo dispositivo.</p>
+<div id="home">
+<div class="grid2">
+  <div class="box">
+    <h2 style="color:var(--yellow)">Online — Criar partida</h2>
+    <p>O Host escolhe o modo e compartilha o código da sala.</p>
+    <button id="createRoom" class="yellow" style="width:100%">Modo 1 — Percurso</button>
+    <button id="createSurvivalRoom" class="survivalModeButton">Modo 2 — Sobrevivência</button>
+  </div>
+
+  <div class="box">
+    <h2 style="color:var(--red)">Online — Entrar</h2>
+    <p>O modo da partida é definido automaticamente pelo Host.</p>
+    <input id="roomInput" maxlength="8" placeholder="ABC123">
+    <button id="joinRoom" class="red" style="width:100%;margin-top:10px">Entrar na sala</button>
+  </div>
+</div>
+
+<div id="offlineHint">
+  <h2 style="margin-bottom:6px;color:#9fc6ff">Couch Co-op / Offline</h2>
+  <p class="muted" style="margin:4px 0 10px">
+    Dois jogadores no mesmo dispositivo, com tela dividida e sem internet.
+  </p>
+  <p class="muted" style="font-size:12px">
+    P1: A / D / W &nbsp; • &nbsp; P2: ← / → / ↑
+  </p>
+  <div class="row" style="justify-content:center">
+    <button id="startOfflineBtn" class="secondary">Modo 1 — Percurso</button>
+    <button id="startOfflineSurvivalBtn" class="survivalModeButton" style="width:auto;margin-top:0">Modo 2 — Sobrevivência</button>
+  </div>
+</div>
+
+<div id="menuStatus" class="status">
+  Modo 1: percurso procedural. Modo 2: sobreviva o máximo de tempo possível.
+</div>
+</div>
+<div id="lobby" class="hidden">
+  <div class="box">
+    <h2 id="lobbyTitle">Sala multiplayer</h2>
+    <div id="roomCode" class="roomCode"></div>
+    <p id="lobbyMessage" class="muted" style="text-align:center"></p>
+
+    <div id="multiplayerLobbyInfo">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <b>Jogadores conectados</b>
+        <span id="playerCountBadge">0</span>
+      </div>
+      <div id="playerList"></div>
+      <div id="multiplayerStageNotice" class="muted">
+        V8.0: o lobby aceita vários jogadores. Nesta etapa a fase online ainda inicia somente com 2 jogadores; a próxima versão adaptará física e mapas para toda a sala.
+      </div>
+    </div>
+
+    <div class="row" style="justify-content:center;margin-top:14px">
+      <button id="startLobbyGame" class="yellow hidden" disabled>Iniciar partida</button>
+      <button id="copyRoom" class="secondary">Copiar código</button>
+      <button id="leaveLobby" class="secondary">Sair</button>
+    </div>
+  </div>
+</div>
+</div></section>
+<section id="game" class="screen"><div id="hud"><div id="leftHud"><b id="roleText"></b><br><span class="muted" id="controlText"></span></div><div id="centerHud">
+  <b id="gameTitle">VISÕES CRUZADAS — PROCEDURAL</b><br>
+  <span id="gameSubtitle" class="muted">Rotas agora podem usar movimento, plataformas temporárias, obstáculos, blocos azuis e zigue-zague.</span><br>
+  <b id="survivalTimer" class="hidden">Tempo: 00:00.0</b>
+</div><div id="rightHud">
+  <span id="netText">Conectado</span><br>
+  <span id="transportText" class="muted">WebSocket · Sala Cloudflare</span><br>
+  <b id="phaseCounter">Fases jogadas: 0</b>
+</div></div><div id="gameArea"><canvas id="canvas"></canvas><div id="offlineViews" class="hidden"><div class="offlineView"><canvas id="offlineCanvasP1"></canvas><div class="offlineLabel p1">JOGADOR 1 — VISÃO AMARELA</div><div class="offlineTouchControls"><div class="offlineTouchGroup"><button class="offlineTouchBtn" id="offlineP1Left">◀</button><button class="offlineTouchBtn" id="offlineP1Right">▶</button></div><div class="offlineTouchGroup"><button class="offlineTouchBtn jump" id="offlineP1Jump">PULAR</button></div></div></div><div class="offlineView"><canvas id="offlineCanvasP2"></canvas><div class="offlineLabel p2">JOGADOR 2 — VISÃO VERMELHA</div><div class="offlineTouchControls"><div class="offlineTouchGroup"><button class="offlineTouchBtn" id="offlineP2Left">◀</button><button class="offlineTouchBtn" id="offlineP2Right">▶</button></div><div class="offlineTouchGroup"><button class="offlineTouchBtn jump" id="offlineP2Jump">PULAR</button></div></div></div></div><div id="gameMsg"></div>
+<div id="survivalLegend">
+  Obstáculos normais usam a cor de um jogador e só ele os enxerga · azuis são visíveis a todos.<br>
+  Cair, tocar o teto, tocar no azul ou ser esmagado elimina o jogador; a rodada termina quando todos morrerem.
+</div>
+<div id="mapPanel">
+  <div><b>MAPA PROCEDURAL</b></div>
+  <div>Seed: <span id="mapSeed" class="seed">---</span></div>
+  <div>Origem: <span id="mapSource" class="seed">---</span></div>
+  <div>Jogadores alvo: <span id="mapTargetPlayers" class="seed">---</span></div>
+  <div>Mundo: <span id="mapWorldSize" class="seed">---</span></div>
+  <div>Plataformas: <span id="mapPlatformCount" class="seed">---</span></div>
+  <div>Recursos: <span id="mapFeatures" class="seed">---</span></div>
+  <div>Validação automática: <span id="autoValidation">---</span></div>
+  <div id="mapLocalStatus" class="muted">Mapa ainda não avaliado.</div>
+  <div class="actions">
+    <button id="approveMapBtn" disabled>✓ POSSÍVEL</button>
+    <button id="rejectMapBtn">✕ IMPOSSÍVEL</button>
+  </div>
+</div><div id="touchControls"><div class="touchGroup"><button class="touchBtn" id="btnLeft">◀</button><button class="touchBtn" id="btnRight">▶</button></div><div class="touchGroup"><button class="touchBtn jump" id="btnJump">PULAR</button></div></div><div id="overlay"><div class="card"><h2 id="endTitle"></h2><p id="endText"></p>
+<div id="generatedMapDecision" class="row hidden" style="justify-content:center;margin-bottom:10px">
+  <button id="overlayApproveBtn" style="background:#55dc88;color:#08130d">✓ POSSÍVEL</button>
+  <button id="overlayRejectBtn" class="red">✕ IMPOSSÍVEL</button>
+</div>
+<div class="row" style="justify-content:center">
+  <button id="nextMapBtn" class="yellow hidden">Próximo mapa</button>
+  <button id="restartBtn">Reiniciar</button>
+  <button id="menuBtn" class="secondary">Menu</button>
+</div></div></div></div></section>
+<script>
+(()=>{
+const SIGNAL_SERVER="wss://visoes-cruzadas-server.gd91639.workers.dev";
+const WORLD={w:1200,h:680},GRAVITY=1850,MOVE_SPEED=315,JUMP_SPEED=680,SNAPSHOT_RATE=30;
+let blocks=[
+{x:60,y:585,w:250,h:28,type:"yellow"},
+{x:60,y:585,w:250,h:28,type:"red"}
+],goal={x:1060,y:215,w:70,h:70};
+const $=id=>document.getElementById(id),canvas=$("canvas"),ctx=canvas.getContext("2d"),offlineCanvasP1=$("offlineCanvasP1"),offlineCtxP1=offlineCanvasP1.getContext("2d"),offlineCanvasP2=$("offlineCanvasP2"),offlineCtxP2=offlineCanvasP2.getContext("2d");
+let role=null,roomCode=null,signal=null,pc=null,channel=null,state=newState(),remoteState=newState(),keys={},touchInput={left:false,right:false,jump:false},remoteInput={left:false,right:false,jump:false},lastTime=performance.now(),accumulator=0,gameStarted=false;
+let roomPlayers=[];
+let myRoomSlot=null;
+let activePeerId=null;
+let activeMatchRoster=[];
+let matchStarting=false;
+let transportMode="websocket";
+const hostPeerConnections=new Map();
+const hostChannels=new Map();
+const hostPendingIce=new Map();
+let clientPendingIce=[];
+const remoteInputsByPlayer=new Map();
+let matchStartWatchTimer=null;
+let currentMap=null;
+let mapWasCompleted=false;
+let remotePlayerId=null;
+let mapLoadInProgress=false;
+let playerPlayedCount=0;
+let gameMode="online";
+let gameType="course";
+let offlinePlayedCount=0;
+let survivalBestTime=Number(localStorage.getItem("vc_survival_best_v1")||0);
+let offlineTouchInput1={left:false,right:false,jump:false};
+let offlineTouchInput2={left:false,right:false,jump:false};
+const OFFLINE_PLAYED_STORAGE="vc_offline_played_v1";
+const OFFLINE_APPROVED_STORAGE="vc_offline_approved_v1";
+const GENERATOR_VERSION=4;
+const STORAGE_REJECTED="vc_rejected_maps_v4";
+const API_BASE=SIGNAL_SERVER.replace(/^wss:/,"https:").replace(/^ws:/,"http:");
+const PLAYER_ID=getOrCreatePlayerId();
+
+
+function safeReadStorage(key){
+  try{
+    const raw=localStorage.getItem(key);
+    return raw?JSON.parse(raw):[];
+  }catch{
+    return [];
+  }
+}
+
+function safeWriteStorage(key,value){
+  try{
+    localStorage.setItem(key,JSON.stringify(value));
+  }catch(error){
+    console.warn("Falha no armazenamento local:",error);
+  }
+}
+
+function getOrCreatePlayerId(){
+  const key="vc_player_id_v1";
+  try{
+    let id=localStorage.getItem(key);
+    if(id)return id;
+
+    id=(crypto&&crypto.randomUUID)
+      ?crypto.randomUUID()
+      :"p-"+Date.now()+"-"+Math.random().toString(36).slice(2);
+
+    localStorage.setItem(key,id);
+    return id;
+  }catch{
+    return "temp-"+Date.now()+"-"+Math.random().toString(36).slice(2);
+  }
+}
+
+
+function formatSurvivalTime(seconds){
+  const value=Math.max(0,Number(seconds)||0);
+  const minutes=Math.floor(value/60);
+  const secs=Math.floor(value%60);
+  const tenths=Math.floor((value-Math.floor(value))*10);
+
+  return `${String(minutes).padStart(2,"0")}:${String(secs).padStart(2,"0")}.${tenths}`;
+}
+
+function updateSurvivalTimer(seconds){
+  const timer=$("survivalTimer");
+  if(!timer)return;
+
+  timer.textContent=
+    `Tempo: ${formatSurvivalTime(seconds)}`;
+}
+
+function updatePhaseCounter(){
+  const counter=$("phaseCounter");
+  if(!counter)return;
+
+  if(gameType==="survival"){
+    counter.textContent=
+      `Recorde: ${formatSurvivalTime(survivalBestTime)}`;
+    return;
+  }
+
+  counter.textContent=
+    gameMode==="offline"
+      ?`Fases offline: ${offlinePlayedCount}`
+      :`Fases jogadas: ${playerPlayedCount}`;
+}
+
+async function refreshPlayerProgress(){
+  if(gameType==="survival"){
+    updatePhaseCounter();
+    return;
+  }
+
+  if(gameMode==="offline"){updatePhaseCounter();return;}
+  try{
+    const params=new URLSearchParams({
+      player_id:PLAYER_ID
+    });
+
+    const stats=await apiFetch(
+      `/api/player/stats?${params}`
+    );
+
+    playerPlayedCount=Number(stats?.played||0);
+    updatePhaseCounter();
+  }catch(error){
+    console.warn(
+      "Não foi possível carregar o contador de fases:",
+      error
+    );
+    updatePhaseCounter();
+  }
+}
+
+async function apiFetch(path,options={}){
+  const response=await fetch(API_BASE+path,{
+    ...options,
+    headers:{
+      "content-type":"application/json",
+      ...(options.headers||{})
+    }
+  });
+
+  let data=null;
+  try{
+    data=await response.json();
+  }catch{
+    data={error:await response.text().catch(()=>response.statusText)};
+  }
+
+  if(!response.ok){
+    const error=new Error(data?.error||`HTTP ${response.status}`);
+    error.status=response.status;
+    throw error;
+  }
+
+  return data;
+}
+
+function fnv1a(text){
+  let h=0x811c9dc5;
+  for(let i=0;i<text.length;i++){
+    h^=text.charCodeAt(i);
+    h=Math.imul(h,0x01000193);
+  }
+  return (h>>>0).toString(16).padStart(8,"0");
+}
+
+function seedToUint(seed){
+  let h=2166136261>>>0;
+  for(let i=0;i<seed.length;i++){
+    h^=seed.charCodeAt(i);
+    h=Math.imul(h,16777619);
+  }
+  return h>>>0;
+}
+
+function mulberry32(a){
+  return function(){
+    a|=0;
+    a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+
+function makeSeed(){
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes=new Uint32Array(8);
+
+  if(window.crypto&&crypto.getRandomValues){
+    crypto.getRandomValues(bytes);
+  }else{
+    for(let i=0;i<bytes.length;i++){
+      bytes[i]=Math.floor(Math.random()*0xffffffff);
+    }
+  }
+
+  let seed="";
+  for(let i=0;i<8;i++){
+    seed+=chars[bytes[i]%chars.length];
+  }
+  return seed;
+}
+
+function clamp(v,min,max){
+  return Math.max(min,Math.min(max,v));
+}
+
+/*
+  Validação V2:
+  Em vez de limitar todo salto a 65 px, calculamos a trajetória real.
+
+  Movimento vertical:
+      y(t) = y0 - JUMP_SPEED*t + 0.5*GRAVITY*t²
+
+  A altura máxima teórica é ~125 px.
+  O alcance horizontal no mesmo nível é ~231 px.
+  Aplicamos margem de segurança de 78%, permitindo mapas bem mais difíceis
+  sem trabalhar no limite absoluto da física.
+*/
+function transitionReachability(prev,next){
+  const dy=next.y-prev.y;
+  const discriminant=
+    JUMP_SPEED*JUMP_SPEED+
+    2*GRAVITY*dy;
+
+  if(discriminant<0){
+    return {
+      ok:false,
+      reason:"plataforma acima da altura máxima do salto"
+    };
+  }
+
+  const landingTime=
+    (JUMP_SPEED+Math.sqrt(discriminant))/
+    GRAVITY;
+
+  const theoreticalHorizontal=
+    MOVE_SPEED*landingTime;
+
+  const safeHorizontal=
+    theoreticalHorizontal*0.86;
+
+  let gap=0;
+
+  if(next.x>prev.x+prev.w){
+    gap=next.x-(prev.x+prev.w);
+  }else if(prev.x>next.x+next.w){
+    gap=prev.x-(next.x+next.w);
+  }
+
+  if(gap>safeHorizontal){
+    return {
+      ok:false,
+      reason:`vão ${Math.round(gap)} > alcance seguro ${Math.round(safeHorizontal)}`
+    };
+  }
+
+  return {
+    ok:true,
+    gap,
+    landingTime,
+    safeHorizontal
+  };
+}
+
+function validateProceduralMap(map){
+  if(!map||!Array.isArray(map.path)||map.path.length<3){
+    return {ok:false,reason:"rota ausente"};
+  }
+
+  const path=map.path;
+  const worldW=Number(map.world?.w)||1200;
+  const worldH=Number(map.world?.h)||680;
+
+  for(let i=0;i<path.length;i++){
+    const p=path[i];
+
+    if(
+      p.x<20||
+      p.x+p.w>worldW-20||
+      p.y<100||
+      p.y+p.h>worldH-20||
+      p.w<50
+    ){
+      return {
+        ok:false,
+        reason:`plataforma ${i+1} fora dos limites`
+      };
+    }
+
+    if(i===0)continue;
+
+    const jump=
+      transitionReachability(
+        path[i-1],
+        p
+      );
+
+    if(!jump.ok){
+      return {
+        ok:false,
+        reason:`salto ${i}: ${jump.reason}`
+      };
+    }
+  }
+
+  const last=path[path.length-1];
+
+  if(
+    map.goal.x<last.x||
+    map.goal.x+map.goal.w>last.x+last.w||
+    Math.abs((map.goal.y+map.goal.h)-last.y)>2
+  ){
+    return {
+      ok:false,
+      reason:"saída não apoiada na plataforma final"
+    };
+  }
+
+  return {
+    ok:true,
+    reason:"rota compatível com a trajetória física do salto"
+  };
+}
+
+function randomInt(rand,min,max){
+  return min+Math.floor(rand()*(max-min+1));
+}
+
+function rangesOverlap(a1,a2,b1,b2){
+  return a1<b2&&a2>b1;
+}
+
+function candidateConflicts(candidate,path){
+  for(const old of path){
+    const horizontal=
+      rangesOverlap(
+        candidate.x-10,
+        candidate.x+candidate.w+10,
+        old.x,
+        old.x+old.w
+      );
+
+    const vertical=
+      rangesOverlap(
+        candidate.y-45,
+        candidate.y+candidate.h+45,
+        old.y,
+        old.y+old.h
+      );
+
+    if(horizontal&&vertical){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function featureSummary(features){
+  const enabled=[];
+
+  if(features?.moving)enabled.push("móveis");
+  if(features?.blinking)enabled.push("temporárias");
+  if(features?.obstacles)enabled.push("obstáculos");
+  if(features?.death)enabled.push("azuis mortais");
+  if(features?.zigzag)enabled.push("zigue-zague");
+
+  return enabled.length
+    ?enabled.join(", ")
+    :"nenhum especial";
+}
+
+function chooseDistinct(rand,array,count){
+  const copy=[...array];
+  const result=[];
+
+  while(copy.length&&result.length<count){
+    const index=
+      Math.floor(rand()*copy.length);
+
+    result.push(
+      copy.splice(index,1)[0]
+    );
+  }
+
+  return result;
+}
+
+function generationPlayerCount(){
+  if(
+    gameMode==="online"&&
+    gameType==="course"&&
+    activeMatchRoster.length>=2
+  ){
+    return activeMatchRoster.length;
+  }
+
+  return 2;
+}
+
+function shuffledIndexes(rand,count){
+  const result=Array.from(
+    {length:count},
+    (_,index)=>index
+  );
+
+  for(
+    let i=result.length-1;
+    i>0;
+    i--
+  ){
+    const j=Math.floor(rand()*(i+1));
+    [result[i],result[j]]=[result[j],result[i]];
+  }
+
+  return result;
+}
+
+function balancedOwnerSequence(rand,playerCount,total){
+  const result=[];
+  let previous=null;
+
+  while(result.length<total){
+    let cycle=shuffledIndexes(
+      rand,
+      playerCount
+    );
+
+    if(
+      previous!==null&&
+      cycle.length>1&&
+      cycle[0]===previous
+    ){
+      cycle.push(
+        cycle.shift()
+      );
+    }
+
+    for(const owner of cycle){
+      if(result.length>=total)break;
+      result.push(owner);
+      previous=owner;
+    }
+  }
+
+  return result;
+}
+
+function generatedBlockForOwner(block,ownerIndex,playerCount){
+  if(playerCount===2){
+    return {
+      ...block,
+      ownerIndex,
+      type:
+        ownerIndex===0
+          ?"yellow"
+          :"red"
+    };
+  }
+
+  return {
+    ...block,
+    ownerIndex,
+    type:"adaptive"
+  };
+}
+
+function generateMapFromSeed(seed,requestedPlayerCount=2){
+  const playerCount=Math.max(
+    2,
+    Math.floor(
+      Number(requestedPlayerCount)||2
+    )
+  );
+
+  const rand=mulberry32(
+    seedToUint(
+      `${seed}|v${GENERATOR_VERSION}|players:${playerCount}`
+    )
+  );
+
+  const features={
+    moving:rand()<0.58,
+    blinking:rand()<0.52,
+    obstacles:rand()<0.64,
+    death:rand()<0.46,
+    zigzag:rand()<0.70
+  };
+
+  /*
+    Mais jogadores = mais pontos da rota.
+    Não existe um teto fixo vinculado ao número de jogadores:
+    o comprimento cresce de forma aproximadamente linear.
+  */
+  const minMiddle=Math.max(
+    6,
+    3+playerCount*2
+  );
+
+  const maxMiddle=Math.max(
+    minMiddle+2,
+    6+playerCount*3
+  );
+
+  const middleCount=randomInt(
+    rand,
+    minMiddle,
+    maxMiddle
+  );
+
+  const startWidth=Math.max(
+    240,
+    105+playerCount*44
+  );
+
+  const finalWidth=Math.max(
+    155,
+    105+playerCount*25
+  );
+
+  const path=[];
+
+  const start={
+    id:"p0",
+    x:60,
+    y:585,
+    w:startWidth,
+    h:28,
+    type:"shared",
+    sharedPlatform:true,
+    kind:"platform"
+  };
+
+  path.push(start);
+
+  const owners=balancedOwnerSequence(
+    rand,
+    playerCount,
+    middleCount
+  );
+
+  let previous=start;
+  let lastWasBacktrack=false;
+  let farthestRight=start.x+start.w;
+
+  for(let i=0;i<middleCount;i++){
+    let chosen=null;
+
+    for(let attempt=0;attempt<180;attempt++){
+      const width=randomInt(
+        rand,
+        52,
+        102
+      );
+
+      const gap=randomInt(
+        rand,
+        42,
+        122
+      );
+
+      const deltaY=randomInt(
+        rand,
+        -105,
+        78
+      );
+
+      const canBacktrack=
+        features.zigzag&&
+        i>1&&
+        !lastWasBacktrack&&
+        previous.x>230;
+
+      const backtrack=
+        canBacktrack&&
+        rand()<0.20;
+
+      let x=backtrack
+        ?previous.x-gap-width
+        :previous.x+previous.w+gap;
+
+      if(x<35){
+        x=previous.x+previous.w+gap;
+      }
+
+      const candidate={
+        id:`p${i+1}`,
+        x,
+        y:clamp(
+          previous.y+deltaY,
+          165,
+          565
+        ),
+        w:width,
+        h:24,
+        type:"adaptive",
+        ownerIndex:owners[i],
+        kind:"platform"
+      };
+
+      if(
+        candidateConflicts(
+          candidate,
+          path.slice(
+            0,
+            Math.max(
+              0,
+              path.length-2
+            )
+          )
+        )
+      ){
+        continue;
+      }
+
+      const jump=transitionReachability(
+        previous,
+        candidate
+      );
+
+      if(jump.ok){
+        chosen=candidate;
+        lastWasBacktrack=
+          candidate.x<previous.x;
+        break;
+      }
+    }
+
+    if(!chosen){
+      const width=72;
+      const gap=54;
+
+      chosen={
+        id:`p${i+1}`,
+        x:
+          previous.x+
+          previous.w+
+          gap,
+        y:clamp(
+          previous.y-38,
+          180,
+          555
+        ),
+        w:width,
+        h:24,
+        type:"adaptive",
+        ownerIndex:owners[i],
+        kind:"platform"
+      };
+
+      lastWasBacktrack=false;
+    }
+
+    path.push(chosen);
+    previous=chosen;
+
+    farthestRight=Math.max(
+      farthestRight,
+      chosen.x+chosen.w
+    );
+  }
+
+  let finalPlatform=null;
+
+  for(let attempt=0;attempt<120;attempt++){
+    const gap=randomInt(
+      rand,
+      48,
+      112
+    );
+
+    const candidate={
+      id:`p${middleCount+1}`,
+      x:
+        previous.x+
+        previous.w+
+        gap,
+      y:clamp(
+        previous.y+
+        randomInt(
+          rand,
+          -90,
+          66
+        ),
+        150,
+        550
+      ),
+      w:finalWidth,
+      h:28,
+      type:"shared",
+      sharedPlatform:true,
+      kind:"platform"
+    };
+
+    if(
+      transitionReachability(
+        previous,
+        candidate
+      ).ok
+    ){
+      finalPlatform=candidate;
+      break;
+    }
+  }
+
+  if(!finalPlatform){
+    finalPlatform={
+      id:`p${middleCount+1}`,
+      x:
+        previous.x+
+        previous.w+
+        52,
+      y:clamp(
+        previous.y-30,
+        170,
+        540
+      ),
+      w:finalWidth,
+      h:28,
+      type:"shared",
+      sharedPlatform:true,
+      kind:"platform"
+    };
+  }
+
+  path.push(finalPlatform);
+
+  farthestRight=Math.max(
+    farthestRight,
+    finalPlatform.x+
+    finalPlatform.w
+  );
+
+  const worldWidth=Math.max(
+    1200,
+    Math.ceil(
+      (farthestRight+170)/100
+    )*100
+  );
+
+  const world={
+    w:worldWidth,
+    h:680
+  };
+
+  const eligibleIndices=[];
+
+  for(
+    let i=1;
+    i<path.length-1;
+    i++
+  ){
+    eligibleIndices.push(i);
+  }
+
+  const dynamicUsed=new Set();
+
+  if(
+    features.moving&&
+    eligibleIndices.length
+  ){
+    const maxMoving=Math.min(
+      eligibleIndices.length,
+      Math.max(
+        2,
+        Math.ceil(playerCount/2)
+      )
+    );
+
+    const count=randomInt(
+      rand,
+      1,
+      maxMoving
+    );
+
+    for(
+      const index
+      of chooseDistinct(
+        rand,
+        eligibleIndices,
+        count
+      )
+    ){
+      dynamicUsed.add(index);
+
+      path[index].behavior={
+        type:"moving",
+        axis:rand()<0.72?"x":"y",
+        range:randomInt(rand,28,66),
+        speed:randomInt(rand,35,60),
+        phase:rand()
+      };
+    }
+  }
+
+  if(features.blinking){
+    const candidates=eligibleIndices.filter(
+      index=>
+        !dynamicUsed.has(index)&&
+        !dynamicUsed.has(index-1)&&
+        !dynamicUsed.has(index+1)
+    );
+
+    const maxBlink=Math.min(
+      candidates.length,
+      Math.max(
+        2,
+        Math.ceil(playerCount/3)+1
+      )
+    );
+
+    const count=maxBlink>0
+      ?randomInt(rand,1,maxBlink)
+      :0;
+
+    for(
+      const index
+      of chooseDistinct(
+        rand,
+        candidates,
+        count
+      )
+    ){
+      dynamicUsed.add(index);
+
+      path[index].behavior={
+        type:"blink",
+        period:10,
+        visibleFor:5,
+        phase:rand()*10
+      };
+    }
+  }
+
+  const generatedBlocks=[];
+
+  for(let i=0;i<path.length;i++){
+    const p=path[i];
+
+    if(p.sharedPlatform){
+      if(playerCount===2){
+        generatedBlocks.push(
+          {
+            ...p,
+            id:`${p.id}-y`,
+            type:"yellow"
+          },
+          {
+            ...p,
+            id:`${p.id}-r`,
+            type:"red"
+          }
+        );
+      }else{
+        generatedBlocks.push({
+          ...p,
+          id:`${p.id}-shared`,
+          type:"shared",
+          visibleToAll:true,
+          sharedPlatform:true
+        });
+      }
+    }else{
+      generatedBlocks.push(
+        generatedBlockForOwner(
+          p,
+          Number(p.ownerIndex)||0,
+          playerCount
+        )
+      );
+    }
+  }
+
+  if(features.obstacles){
+    const obstacleCandidates=eligibleIndices.filter(
+      index=>
+        !path[index].behavior&&
+        path[index].w>=72
+    );
+
+    const maxObstacles=Math.min(
+      obstacleCandidates.length,
+      Math.max(
+        3,
+        Math.ceil(playerCount*0.85)
+      )
+    );
+
+    const obstacleCount=maxObstacles>0
+      ?randomInt(rand,1,maxObstacles)
+      :0;
+
+    for(
+      const index
+      of chooseDistinct(
+        rand,
+        obstacleCandidates,
+        obstacleCount
+      )
+    ){
+      const parent=path[index];
+      const w=randomInt(rand,16,25);
+      const h=randomInt(rand,20,36);
+      const leftSide=rand()<0.5;
+      const ownerIndex=Number(parent.ownerIndex)||0;
+
+      generatedBlocks.push(
+        generatedBlockForOwner(
+          {
+            id:`obs-${index}`,
+            x:leftSide
+              ?parent.x+10
+              :parent.x+parent.w-w-10,
+            y:parent.y-h,
+            w,
+            h,
+            kind:"obstacle"
+          },
+          ownerIndex,
+          playerCount
+        )
+      );
+    }
+  }
+
+  if(features.death){
+    const deathCandidates=eligibleIndices.filter(
+      index=>
+        !path[index].behavior&&
+        path[index].w>=78
+    );
+
+    const maxDeath=Math.min(
+      deathCandidates.length,
+      Math.max(
+        2,
+        Math.ceil(playerCount/3)+1
+      )
+    );
+
+    const deathCount=maxDeath>0
+      ?randomInt(rand,1,maxDeath)
+      :0;
+
+    for(
+      const index
+      of chooseDistinct(
+        rand,
+        deathCandidates,
+        deathCount
+      )
+    ){
+      const parent=path[index];
+      const w=randomInt(rand,18,26);
+      const h=16;
+      const leftSide=rand()<0.5;
+
+      generatedBlocks.push({
+        id:`death-${index}`,
+        x:leftSide
+          ?parent.x+12
+          :parent.x+parent.w-w-12,
+        y:parent.y-h,
+        w,
+        h,
+        type:"blue",
+        kind:"death",
+        visibleToAll:true
+      });
+    }
+  }
+
+  const generatedGoal={
+    x:
+      finalPlatform.x+
+      Math.floor(
+        (finalPlatform.w-70)/2
+      ),
+    y:finalPlatform.y-70,
+    w:70,
+    h:70
+  };
+
+  const map={
+    seed,
+    generatorVersion:GENERATOR_VERSION,
+    playerCount,
+    world,
+    path,
+    blocks:generatedBlocks,
+    goal:generatedGoal,
+    features
+  };
+
+  map.hash=fnv1a(
+    JSON.stringify({
+      generatorVersion:map.generatorVersion,
+      playerCount:map.playerCount,
+      world:map.world,
+      path:map.path,
+      blocks:map.blocks,
+      goal:map.goal,
+      features:map.features
+    })
+  );
+
+  return map;
+}
+
+async function checkMapGlobal(map){
+  const params=
+    new URLSearchParams({
+      hash:map.hash,
+      seed:map.seed
+    });
+
+  return apiFetch(
+    `/api/maps/check?${params}`
+  );
+}
+
+
+function readOfflinePlayed(){return safeReadStorage(OFFLINE_PLAYED_STORAGE)}
+function recordOfflineMapPlayed(map){if(!map?.hash)return;const played=readOfflinePlayed();if(!played.includes(map.hash)){played.push(map.hash);safeWriteStorage(OFFLINE_PLAYED_STORAGE,played.slice(-2000))}offlinePlayedCount=played.length;updatePhaseCounter()}
+function generateValidNewMapOffline(){const rejected=safeReadStorage(STORAGE_REJECTED),rejectedHashes=new Set(rejected.map(item=>item.hash)),alreadyPlayed=new Set(readOfflinePlayed());for(let attempt=0;attempt<600;attempt++){const seed=makeSeed(),map=generateMapFromSeed(seed,2),validation=validateProceduralMap(map);if(!validation.ok||rejectedHashes.has(map.hash)||alreadyPlayed.has(map.hash))continue;map.autoValidation=validation;map.source="offline";return map}throw new Error("Não foi possível gerar um mapa offline inédito.")}
+function loadNextOfflineMap(){const map=generateValidNewMapOffline();applyMap(map);state=newState();remoteState=newState();recordOfflineMapPlayed(map);hideEnd();setEndActions("none");return map}
+function saveOfflineApprovedMap(){if(!currentMap||!mapWasCompleted){$("mapLocalStatus").textContent="Complete a fase antes de marcá-la como possível.";return}const approved=safeReadStorage(OFFLINE_APPROVED_STORAGE);if(!approved.some(item=>item.hash===currentMap.hash)){approved.push({seed:currentMap.seed,hash:currentMap.hash,generatorVersion:currentMap.generatorVersion,map:currentMap,approvedAt:new Date().toISOString()});safeWriteStorage(OFFLINE_APPROVED_STORAGE,approved.slice(-500))}$("mapLocalStatus").textContent="✓ Mapa aprovado e salvo neste dispositivo.";setEndActions("next")}
+function rejectOfflineMap(){if(!currentMap)return;const rejected=safeReadStorage(STORAGE_REJECTED);if(!rejected.some(item=>item.hash===currentMap.hash)){rejected.push({seed:currentMap.seed,hash:currentMap.hash,generatorVersion:currentMap.generatorVersion,rejectedAt:new Date().toISOString()});safeWriteStorage(STORAGE_REJECTED,rejected.slice(-1000))}$("mapLocalStatus").textContent="✕ Mapa rejeitado localmente. Gerando outro...";loadNextOfflineMap()}
+function cleanupConnectionForModeChange(){try{signal?.close()}catch{}signal=null;cleanupRTC()}
+function startOfflineGame(type="course"){
+  cleanupConnectionForModeChange();
+
+  gameMode="offline";
+  gameType=type;
+  role="offline";
+  gameStarted=true;
+
+  document.body.className=
+    type==="survival"
+      ?"offline-mode survival-mode"
+      :"offline-mode";
+
+  offlinePlayedCount=
+    readOfflinePlayed().length;
+
+  if(type==="survival"){
+    state=newSurvivalState(activeMatchRoster);
+    remoteState=newSurvivalState(activeMatchRoster);
+  }else{
+    loadNextOfflineMap();
+  }
+
+  startGame();
+}
+async function generateValidNewMapGlobal(){
+  const rejected=
+    safeReadStorage(
+      STORAGE_REJECTED
+    );
+
+  const rejectedHashes=
+    new Set(
+      rejected.map(
+        item=>item.hash
+      )
+    );
+
+  for(
+    let attempt=0;
+    attempt<300;
+    attempt++
+  ){
+    const seed=
+      makeSeed();
+
+    const map=
+      generateMapFromSeed(
+        seed,
+        generationPlayerCount()
+      );
+
+    const validation=
+      validateProceduralMap(
+        map
+      );
+
+    if(!validation.ok){
+      continue;
+    }
+
+    if(
+      rejectedHashes.has(
+        map.hash
+      )
+    ){
+      continue;
+    }
+
+    const globalStatus=
+      await checkMapGlobal(
+        map
+      );
+
+    if(
+      globalStatus.known
+    ){
+      continue;
+    }
+
+    map.autoValidation=
+      validation;
+
+    map.source=
+      "generated";
+
+    return map;
+  }
+
+  throw new Error(
+    "Não foi possível encontrar uma seed inédita e válida."
+  );
+}
+
+function applyMap(map){
+  currentMap={
+    ...map
+  };
+
+  WORLD.w=Number(map.world?.w)||1200;
+  WORLD.h=Number(map.world?.h)||680;
+
+  blocks=
+    map.blocks.map(
+      b=>({...b})
+    );
+
+  if(
+    gameMode==="online"&&
+    gameType==="course"&&
+    activeMatchRoster.length>=2
+  ){
+    blocks=decorateBlocksForMultiplayer(
+      blocks,
+      activeMatchRoster
+    );
+  }
+
+  goal={
+    ...map.goal
+  };
+
+  mapWasCompleted=
+    false;
+
+  $("mapSeed").textContent=
+    map.seed||"---";
+
+  const source=
+    map.source||
+    (
+      map.databaseId
+        ?"database"
+        :"generated"
+    );
+
+  $("mapSource").textContent=
+    source==="database"
+      ?"BANCO D1"
+      :source==="offline"
+        ?"GERADO OFFLINE"
+        :"GERADO AGORA";
+
+  $("mapTargetPlayers").textContent=
+    Number(map.playerCount)||2;
+
+  $("mapWorldSize").textContent=
+    `${WORLD.w} × ${WORLD.h}`;
+
+  $("mapPlatformCount").textContent=
+    Array.isArray(map.path)
+      ?map.path.length
+      :"---";
+
+  $("mapFeatures").textContent=
+    featureSummary(
+      map.features
+    );
+
+  const validation=
+    validateProceduralMap(
+      map
+    );
+
+  $("autoValidation").textContent=
+    validation.ok
+      ?"APROVADO ✓"
+      :"ATENÇÃO";
+
+  $("autoValidation").className=
+    validation.ok
+      ?"ok"
+      :"bad";
+
+  if(gameMode==="offline"){
+    $("mapLocalStatus").textContent="Couch Co-op: teste a fase e avalie localmente.";
+    $("approveMapBtn").disabled=true;
+    $("rejectMapBtn").disabled=false;
+  }else if(role==="host"){
+    if(source==="database"){
+      $("mapLocalStatus").textContent=
+        "Mapa aprovado da biblioteca. O grupo ainda possui jogadores que não haviam jogado este mapa.";
+
+      $("approveMapBtn").disabled=
+        true;
+
+      $("rejectMapBtn").disabled=
+        true;
+    }else{
+      $("mapLocalStatus").textContent=
+        "Mapa novo. Teste a fase e informe se ela é realmente possível.";
+
+      $("approveMapBtn").disabled=
+        true;
+
+      $("rejectMapBtn").disabled=
+        false;
+    }
+  }else{
+    $("mapLocalStatus").textContent=
+      "Mapa sincronizado pelo Host.";
+  }
+}
+
+async function loadNextMapForPair(){
+  const playerIds=activeMatchPlayerIds();
+
+  if(
+    role!=="host"||
+    mapLoadInProgress||
+    playerIds.length<2
+  ){
+    return;
+  }
+
+  mapLoadInProgress=true;
+
+  try{
+    $("lobbyMessage").textContent=
+      "Procurando um mapa ainda não jogado pelo grupo...";
+
+    const response=await apiFetch(
+      "/api/maps/next",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          player_ids:playerIds,
+          player_count:playerIds.length
+        })
+      }
+    );
+
+    let map;
+
+    if(response.map){
+      map={
+        ...response.map,
+        source:"database"
+      };
+    }else{
+      $("lobbyMessage").textContent=
+        "O grupo já percorreu a biblioteca disponível. Gerando um mapa novo...";
+
+      map=await generateValidNewMapGlobal();
+    }
+
+    applyMap(map);
+
+    sendGame({
+      type:"map",
+      map,
+      roster:activeMatchRoster
+    });
+
+    if(map.databaseId){
+      await markMapPlayed(
+        map.databaseId,
+        false
+      );
+    }
+
+    state=newOnlineMultiplayerState(activeMatchRoster);
+    remoteState=newOnlineMultiplayerState(activeMatchRoster);
+
+    if(!gameStarted){
+      gameStarted=true;
+      matchStarting=false;
+      startGame();
+    }else{
+      hideEnd();
+      sendGame({type:"restart"});
+    }
+
+  }catch(error){
+    console.error("Erro ao carregar mapa:",error);
+    matchStarting=false;
+    stopMatchStartWatch();
+
+    if($("startLobbyGame")){
+      $("startLobbyGame").disabled=false;
+    }
+
+    $("lobbyMessage").textContent=
+      "Erro ao carregar a partida: "+error.message;
+  }finally{
+    mapLoadInProgress=false;
+  }
+}
+
+async function markMapPlayed(mapId,completed){
+  const playerIds=activeMatchPlayerIds();
+
+  if(!mapId||playerIds.length===0){
+    return;
+  }
+
+  try{
+    await apiFetch(
+      "/api/maps/played",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          map_id:mapId,
+          player_ids:playerIds,
+          completed:!!completed
+        })
+      }
+    );
+
+    await refreshPlayerProgress();
+  }catch(error){
+    console.warn(
+      "Não foi possível registrar histórico:",
+      error
+    );
+  }
+}
+
+function mapForDatabase(map){
+  return {
+    seed:
+      map.seed,
+
+    generatorVersion:
+      map.generatorVersion,
+
+    playerCount:
+      Number(map.playerCount)||2,
+
+    world:
+      map.world||{w:1200,h:680},
+
+    hash:
+      map.hash,
+
+    path:
+      map.path,
+
+    blocks:
+      map.blocks,
+
+    goal:
+      map.goal,
+
+    features:
+      map.features||{},
+
+    autoValidation:
+      map.autoValidation||
+      validateProceduralMap(map)
+  };
+}
+
+async function saveApprovedMap(){
+  if(gameMode==="offline"){saveOfflineApprovedMap();return;}
+  if(role!=="host"||!currentMap){return;}
+
+  if(
+    currentMap.source==="database"||
+    currentMap.databaseId
+  ){
+    $("mapLocalStatus").textContent=
+      "Este mapa já pertence à biblioteca.";
+    return;
+  }
+
+  if(
+    !mapWasCompleted
+  ){
+    $("mapLocalStatus").textContent=
+      "Complete o mapa antes de marcá-lo como possível.";
+    return;
+  }
+
+  $("approveMapBtn").disabled=
+    true;
+
+  $("rejectMapBtn").disabled=
+    true;
+
+  $("mapLocalStatus").textContent=
+    "Salvando mapa no Cloudflare D1...";
+
+  try{
+    const response=
+      await apiFetch(
+        "/api/maps/approve",
+        {
+          method:"POST",
+          body:
+            JSON.stringify({
+              seed:
+                currentMap.seed,
+              map_hash:
+                currentMap.hash,
+              generator_version:
+                currentMap.generatorVersion,
+              player_count:
+                Number(currentMap.playerCount)||2,
+              map:
+                mapForDatabase(
+                  currentMap
+                )
+            })
+        }
+      );
+
+    currentMap.databaseId=
+      response.id;
+
+    currentMap.source=
+      "database";
+
+    $("mapSource").textContent=
+      "BANCO D1";
+
+    $("mapLocalStatus").textContent=
+      "✓ Mapa aprovado e salvo globalmente no D1.";
+
+    await markMapPlayed(
+      currentMap.databaseId,
+      true
+    );
+
+    setEndActions("next");
+  }catch(error){
+    console.error(error);
+
+    $("mapLocalStatus").textContent=
+      "Falha ao salvar no D1: "+
+      error.message;
+
+    $("approveMapBtn").disabled=
+      false;
+
+    $("rejectMapBtn").disabled=
+      false;
+  }
+}
+
+async function rejectCurrentMap(){
+  if(gameMode==="offline"){rejectOfflineMap();return;}
+  if(role!=="host"||!currentMap){return;}
+
+  if(
+    currentMap.source==="database"||
+    currentMap.databaseId
+  ){
+    $("mapLocalStatus").textContent=
+      "Mapas já aprovados não podem ser rejeitados nesta versão.";
+    return;
+  }
+
+  $("approveMapBtn").disabled=true;
+  $("rejectMapBtn").disabled=true;
+
+  $("mapLocalStatus").textContent=
+    "Registrando mapa impossível no D1...";
+
+  const rejected=
+    safeReadStorage(
+      STORAGE_REJECTED
+    );
+
+  if(
+    !rejected.some(
+      item=>item.hash===currentMap.hash
+    )
+  ){
+    rejected.push({
+      seed:currentMap.seed,
+      hash:currentMap.hash,
+      rejectedAt:new Date().toISOString()
+    });
+
+    safeWriteStorage(
+      STORAGE_REJECTED,
+      rejected.slice(-500)
+    );
+  }
+
+  try{
+    await apiFetch(
+      "/api/maps/reject",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          seed:currentMap.seed,
+          map_hash:currentMap.hash,
+          generator_version:currentMap.generatorVersion,
+          player_count:Number(currentMap.playerCount)||2,
+          map:mapForDatabase(currentMap)
+        })
+      }
+    );
+
+    $("mapLocalStatus").textContent=
+      "✕ Mapa rejeitado globalmente. Procurando a próxima fase...";
+
+    setEndActions("none");
+    hideEnd();
+
+    await loadNextMapForPair();
+
+  }catch(error){
+    console.error(error);
+
+    $("mapLocalStatus").textContent=
+      "Falha ao registrar rejeição: "+
+      error.message;
+
+    $("rejectMapBtn").disabled=false;
+  }
+}
+
+function updateMapPanelForRole(){
+  if(!$("mapPanel"))return;
+
+  $("mapPanel").classList.toggle(
+    "hidden",
+    gameType==="survival"
+  );
+
+  $("mapPanel").classList.toggle(
+    "client",
+    gameType!=="survival"&&
+    gameMode==="online"&&
+    role==="client"
+  );
+}
+
+function createRuntimeBlocks(){
+  return blocks.map(
+    (block,index)=>({
+      ...block,
+      id:
+        block.id||
+        `block-${index}`,
+      baseX:block.x,
+      baseY:block.y,
+      active:true,
+      dx:0,
+      dy:0
+    })
+  );
+}
+
+function newState(){
+  return{
+    players:[
+      {
+        id:1,
+        x:120,
+        y:530,
+        w:34,
+        h:46,
+        vx:0,
+        vy:0,
+        onGround:false,
+        reached:false,
+        jumpLock:false,
+        groundBlockId:null
+      },
+      {
+        id:2,
+        x:200,
+        y:530,
+        w:34,
+        h:46,
+        vx:0,
+        vy:0,
+        onGround:false,
+        reached:false,
+        jumpLock:false,
+        groundBlockId:null
+      }
+    ],
+    runtimeBlocks:createRuntimeBlocks(),
+    elapsed:0,
+    finished:false,
+    result:null
+  };
+}
+
+
+function sortedMatchRoster(roster=activeMatchRoster){
+  return [...(roster||[])].sort(
+    (a,b)=>(a.slot??9999)-(b.slot??9999)
+  );
+}
+
+function newOnlineMultiplayerState(roster=activeMatchRoster){
+  const ordered=sortedMatchRoster(roster);
+
+  const startPlatform=
+    currentMap?.path?.[0]||{
+      x:60,
+      y:585,
+      w:240
+    };
+
+  const playerWidth=30;
+  const usableWidth=Math.max(
+    playerWidth,
+    startPlatform.w-24
+  );
+
+  const players=ordered.map((info,index)=>{
+    const center=
+      startPlatform.x+
+      12+
+      ((index+0.5)/Math.max(1,ordered.length))*
+      usableWidth;
+
+    return {
+      id:index+1,
+      playerId:info.playerId,
+      slot:Number(info.slot)||0,
+      x:clamp(
+        center-playerWidth/2,
+        startPlatform.x+5,
+        startPlatform.x+startPlatform.w-playerWidth-5
+      ),
+      y:startPlatform.y-44,
+      w:playerWidth,
+      h:44,
+      vx:0,
+      vy:0,
+      onGround:false,
+      reached:false,
+      alive:true,
+      eliminatedReason:null,
+      jumpLock:false,
+      groundBlockId:null
+    };
+  });
+
+  return{
+    players,
+    runtimeBlocks:createRuntimeBlocks(),
+    elapsed:0,
+    finished:false,
+    result:null
+  };
+}
+
+function runtimeVisibilityKey(block){
+  const behavior=block.behavior
+    ?JSON.stringify(block.behavior)
+    :"";
+
+  return [
+    Math.round(block.x*10)/10,
+    Math.round(block.y*10)/10,
+    Math.round(block.w*10)/10,
+    Math.round(block.h*10)/10,
+    block.kind||"platform",
+    behavior
+  ].join("|");
+}
+
+function decorateBlocksForMultiplayer(blockList,roster=activeMatchRoster){
+  const ordered=sortedMatchRoster(roster);
+  const slots=ordered.map(player=>Number(player.slot)||0);
+
+  if(slots.length<2){
+    return blockList.map(block=>({...block}));
+  }
+
+  const groups=new Map();
+
+  blockList.forEach((block,index)=>{
+    if(block.kind==="death"||block.type==="blue")return;
+
+    const key=runtimeVisibilityKey(block);
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(index);
+  });
+
+  const sharedIndexes=new Set();
+
+  for(const indexes of groups.values()){
+    const types=new Set(
+      indexes.map(index=>blockList[index].type)
+    );
+
+    if(indexes.length>=2&&types.has("yellow")&&types.has("red")){
+      indexes.forEach(index=>sharedIndexes.add(index));
+    }
+  }
+
+  let ownerCursor=0;
+
+  return blockList.map((block,index)=>{
+    const copy={...block};
+
+    if(block.kind==="death"||block.type==="blue"){
+      copy.visibleToAll=true;
+      copy.displayColor="#3995ff";
+      return copy;
+    }
+
+    if(
+      block.sharedPlatform===true||
+      block.type==="shared"
+    ){
+      copy.visibleToAll=true;
+      copy.sharedPlatform=true;
+      copy.displayColor="#9aa6b8";
+      copy.displayStroke="#dce3ec";
+      return copy;
+    }
+
+    if(Number.isInteger(block.ownerIndex)){
+      const rosterPlayer=ordered[
+        ((block.ownerIndex%ordered.length)+ordered.length)%ordered.length
+      ];
+
+      const ownerSlot=Number(rosterPlayer?.slot)||0;
+
+      copy.ownerSlot=ownerSlot;
+      copy.visibleSlots=[ownerSlot];
+      copy.displayColor=playerColorForSlot(ownerSlot);
+      copy.displayStroke=playerStrokeForSlot(ownerSlot);
+      return copy;
+    }
+
+    if(sharedIndexes.has(index)){
+      copy.visibleToAll=true;
+      copy.sharedPlatform=true;
+      copy.displayColor="#9aa6b8";
+      return copy;
+    }
+
+    let ownerSlot;
+
+    if(slots.length===2){
+      ownerSlot=
+        block.type==="red"
+          ?slots[1]
+          :slots[0];
+    }else{
+      ownerSlot=slots[ownerCursor%slots.length];
+      ownerCursor++;
+    }
+
+    copy.ownerSlot=ownerSlot;
+    copy.visibleSlots=[ownerSlot];
+    copy.displayColor=playerColorForSlot(ownerSlot);
+    copy.displayStroke=playerStrokeForSlot(ownerSlot);
+
+    return copy;
+  });
+}
+
+function activeMatchPlayerIds(){
+  const ids=sortedMatchRoster()
+    .map(player=>String(player.playerId||""))
+    .filter(Boolean);
+
+  return [...new Set(ids)];
+}
+
+function updateLocalSpectatorStatus(){
+  if(gameMode!=="online")return;
+
+  const drawState=
+    role==="host"
+      ?state
+      :remoteState;
+
+  const me=
+    drawState.players?.find(
+      player=>
+        player.playerId===
+        PLAYER_ID
+    );
+
+  if(
+    me&&
+    me.alive===false&&
+    !drawState.finished
+  ){
+    $("gameMsg").textContent=
+      gameType==="survival"
+        ?"Você foi eliminado. Continue observando os obstáculos da sua cor e ajude os sobreviventes."
+        :"Você foi eliminado. Modo espectador: continue ajudando a equipe com a sua visão.";
+  }
+}
+
+
+const SURVIVAL_ARENA={
+  platform:{
+    x:110,
+    y:570,
+    w:980,
+    h:30
+  },
+  ceilingY:38
+};
+
+function randomBetween(min,max){
+  return min+Math.random()*(max-min);
+}
+
+function newSurvivalPlayer(
+  id,
+  x,
+  info=null,
+  width=34
+){
+  return{
+    id,
+    playerId:
+      info?.playerId||
+      null,
+    slot:
+      info?.slot??
+      (id-1),
+    connected:true,
+    alive:true,
+    eliminatedReason:null,
+    x,
+    y:
+      SURVIVAL_ARENA.platform.y-
+      46,
+    w:width,
+    h:46,
+    vx:0,
+    vy:0,
+    onGround:true,
+    jumpLock:false
+  };
+}
+
+function survivalRoster(
+  roster=activeMatchRoster
+){
+  if(
+    gameMode==="online"&&
+    Array.isArray(roster)&&
+    roster.length
+  ){
+    return sortedMatchRoster(
+      roster
+    );
+  }
+
+  /*
+    Couch Co-op continua com dois jogadores locais.
+  */
+  return[
+    {
+      playerId:null,
+      role:"offline",
+      slot:0
+    },
+    {
+      playerId:null,
+      role:"offline",
+      slot:1
+    }
+  ];
+}
+
+function configureSurvivalArena(
+  playerCount
+){
+  /*
+    A arena cresce suavemente para grupos maiores.
+    Mantemos um limite visual razoável para não tornar
+    obstáculos distantes pequenos demais.
+  */
+  const count=
+    Math.max(
+      2,
+      Number(playerCount)||2
+    );
+
+  WORLD.w=
+    Math.min(
+      2200,
+      Math.max(
+        1200,
+        1200+
+        Math.max(
+          0,
+          count-4
+        )*70
+      )
+    );
+
+  WORLD.h=680;
+
+  SURVIVAL_ARENA.platform.x=70;
+  SURVIVAL_ARENA.platform.w=
+    WORLD.w-140;
+  SURVIVAL_ARENA.platform.y=570;
+  SURVIVAL_ARENA.platform.h=30;
+  SURVIVAL_ARENA.ceilingY=38;
+}
+
+function newSurvivalState(
+  roster=activeMatchRoster
+){
+  const ordered=
+    survivalRoster(
+      roster
+    );
+
+  configureSurvivalArena(
+    ordered.length
+  );
+
+  /*
+    O tamanho visual do personagem diminui levemente
+    apenas em salas muito grandes.
+  */
+  const playerWidth=
+    Math.max(
+      20,
+      Math.min(
+        34,
+        34-
+        Math.max(
+          0,
+          ordered.length-10
+        )*.7
+      )
+    );
+
+  const platform=
+    SURVIVAL_ARENA.platform;
+
+  const margin=32;
+
+  const players=
+    ordered.map(
+      (info,index)=>{
+        const center=
+          platform.x+
+          margin+
+          (
+            (index+.5)/
+            Math.max(
+              1,
+              ordered.length
+            )
+          )*
+          Math.max(
+            playerWidth,
+            platform.w-
+            margin*2
+          );
+
+        return newSurvivalPlayer(
+          index+1,
+          clamp(
+            center-
+            playerWidth/2,
+            platform.x+4,
+            platform.x+
+            platform.w-
+            playerWidth-
+            4
+          ),
+          info,
+          playerWidth
+        );
+      }
+    );
+
+  return{
+    players,
+    hazards:[],
+    elapsed:0,
+    spawnTimer:1.35,
+    finished:false,
+    result:null,
+    nextHazardId:1
+  };
+}
+
+function survivalConnectedSlots(
+  gameState
+){
+  const slots=
+    (gameState.players||[])
+      .filter(
+        player=>
+          player.connected!==
+          false
+      )
+      .map(
+        player=>
+          Number(
+            player.slot
+          )||0
+      );
+
+  return[
+    ...new Set(
+      slots
+    )
+  ];
+}
+
+function chooseSurvivalHazardOwner(
+  gameState
+){
+  /*
+    Azul é reservado para morte e aparece para todos.
+    Os demais perigos pertencem visualmente a um slot.
+  */
+  if(Math.random()<0.20){
+    return{
+      color:"blue",
+      ownerSlot:null
+    };
+  }
+
+  const slots=
+    survivalConnectedSlots(
+      gameState
+    );
+
+  if(
+    gameMode==="online"&&
+    slots.length
+  ){
+    const ownerSlot=
+      slots[
+        Math.floor(
+          Math.random()*
+          slots.length
+        )
+      ];
+
+    return{
+      color:"player",
+      ownerSlot
+    };
+  }
+
+  /*
+    Compatibilidade do Couch Co-op.
+  */
+  return Math.random()<0.5
+    ?{
+        color:"yellow",
+        ownerSlot:0
+      }
+    :{
+        color:"red",
+        ownerSlot:1
+      };
+}
+
+function createSurvivalHazard(gameState){
+  const elapsed=
+    gameState.elapsed||0;
+
+  const difficulty=
+    Math.min(
+      1,
+      elapsed/90
+    );
+
+  const speed=
+    150+
+    difficulty*155+
+    randomBetween(-15,35);
+
+  const directions=[
+    "leftToRight",
+    "rightToLeft",
+    "topToBottom",
+    "bottomToTop"
+  ];
+
+  const direction=
+    directions[
+      Math.floor(
+        Math.random()*
+        directions.length
+      )
+    ];
+
+  const visual=
+    chooseSurvivalHazardOwner(
+      gameState
+    );
+
+  const color=
+    visual.color;
+
+  const ownerSlot=
+    visual.ownerSlot;
+
+  const platform=
+    SURVIVAL_ARENA.platform;
+
+  const isBlueDeath=
+    color==="blue";
+
+  let hazard={
+    id:
+      `survival-${gameState.nextHazardId++}`,
+    direction,
+    color,
+    ownerSlot,
+    displayColor:
+      ownerSlot===null
+        ?"#3995ff"
+        :playerColorForSlot(
+            ownerSlot
+          ),
+    displayStroke:
+      ownerSlot===null
+        ?"#a9d2ff"
+        :playerStrokeForSlot(
+            ownerSlot
+          ),
+    kind:"survival-hazard",
+    age:0,
+    vx:0,
+    vy:0
+  };
+
+  if(
+    direction==="leftToRight"||
+    direction==="rightToLeft"
+  ){
+    const w=
+      isBlueDeath
+        ?randomBetween(34,62)
+        :randomBetween(42,78);
+
+    const h=
+      isBlueDeath
+        ?randomBetween(24,48)
+        :randomBetween(28,58);
+
+    hazard={
+      ...hazard,
+      w,
+      h,
+      x:
+        direction==="leftToRight"
+          ?-w-15
+          :WORLD.w+15,
+      y:
+        platform.y-h,
+      vx:
+        direction==="leftToRight"
+          ?(isBlueDeath?speed*1.12:speed)
+          :-(isBlueDeath?speed*1.12:speed),
+      vy:0
+    };
+  }
+
+  if(direction==="topToBottom"){
+    const w=
+      isBlueDeath
+        ?randomBetween(42,78)
+        :randomBetween(55,100);
+
+    const h=
+      isBlueDeath
+        ?randomBetween(60,105)
+        :randomBetween(85,145);
+
+    hazard={
+      ...hazard,
+      w,
+      h,
+      x:
+        randomBetween(
+          platform.x+25,
+          platform.x+
+          platform.w-
+          w-
+          25
+        ),
+      y:-h-15,
+      vx:0,
+      vy:(isBlueDeath?speed*0.92:speed*0.78)
+    };
+  }
+
+  if(direction==="bottomToTop"){
+    const w=
+      isBlueDeath
+        ?randomBetween(40,72)
+        :randomBetween(52,95);
+
+    const h=
+      isBlueDeath
+        ?randomBetween(58,98)
+        :randomBetween(70,125);
+
+    hazard={
+      ...hazard,
+      w,
+      h,
+      x:
+        randomBetween(
+          platform.x+25,
+          platform.x+
+          platform.w-
+          w-
+          25
+        ),
+      y:
+        platform.y+
+        platform.h+
+        15,
+      vx:0,
+      vy:-(isBlueDeath?speed*0.9:speed*0.76)
+    };
+  }
+
+  return hazard;
+}
+
+function survivalInputForPlayer(
+  player
+){
+  if(gameMode==="offline"){
+    return player.id===1
+      ?hostInput()
+      :clientInput();
+  }
+
+  if(
+    player.playerId===
+    PLAYER_ID
+  ){
+    return hostInput();
+  }
+
+  return(
+    remoteInputsByPlayer.get(
+      player.playerId
+    )||
+    neutralInput()
+  );
+}
+
+function playerOverPlatform(player){
+  const p=
+    SURVIVAL_ARENA.platform;
+
+  return(
+    player.x+
+    player.w>
+    p.x&&
+    player.x<
+    p.x+p.w
+  );
+}
+
+function resolveSurvivalPlatform(
+  player,
+  previousBottom
+){
+  const p=
+    SURVIVAL_ARENA.platform;
+
+  const nowBottom=
+    player.y+
+    player.h;
+
+  if(
+    playerOverPlatform(player)&&
+    player.vy>=0&&
+    previousBottom<=p.y+4&&
+    nowBottom>=p.y
+  ){
+    player.y=
+      p.y-
+      player.h;
+
+    player.vy=0;
+    player.onGround=true;
+    return;
+  }
+
+  player.onGround=false;
+}
+
+function recordSurvivalBest(
+  survived
+){
+  const value=
+    Number(survived)||0;
+
+  if(
+    value<=
+    survivalBestTime
+  ){
+    return;
+  }
+
+  survivalBestTime=
+    value;
+
+  try{
+    localStorage.setItem(
+      "vc_survival_best_v1",
+      String(
+        survivalBestTime
+      )
+    );
+  }catch{}
+
+  updatePhaseCounter();
+}
+
+function finishSurvivalGameOver(
+  reason
+){
+  if(state.finished)return;
+
+  state.finished=true;
+
+  const survived=
+    state.elapsed||0;
+
+  state.result={
+    title:"Fim da sobrevivência",
+    text:
+      `${reason} Tempo da equipe: ${formatSurvivalTime(survived)}`
+  };
+
+  recordSurvivalBest(
+    survived
+  );
+
+  showEnd(
+    state.result.title,
+    state.result.text
+  );
+
+  setEndActions("none");
+
+  if(
+    gameMode==="online"&&
+    role==="host"
+  ){
+    sendGame({
+      type:"state",
+      state
+    });
+  }
+}
+
+function eliminateSurvivalPlayer(
+  player,
+  reason
+){
+  if(
+    !player||
+    player.alive===false||
+    state.finished
+  ){
+    return;
+  }
+
+  player.alive=false;
+  player.eliminatedReason=
+    reason;
+
+  player.vx=0;
+  player.vy=0;
+  player.onGround=false;
+
+  if(
+    player.playerId===
+    PLAYER_ID||
+    (
+      gameMode==="offline"&&
+      player.id===1
+    )
+  ){
+    $("gameMsg").textContent=
+      "Você foi eliminado. Continue observando sua cor e ajude os sobreviventes.";
+  }
+
+  const alive=
+    (state.players||[])
+      .filter(
+        candidate=>
+          candidate.alive!==
+          false
+      );
+
+  if(alive.length===0){
+    finishSurvivalGameOver(
+      "Todos os jogadores foram eliminados."
+    );
+  }
+}
+
+function applySurvivalHazardPush(
+  player,
+  hazard
+){
+  if(
+    !overlap(
+      player,
+      hazard
+    )
+  ){
+    return;
+  }
+
+  const platform=
+    SURVIVAL_ARENA.platform;
+
+  if(hazard.color==="blue"){
+    eliminateSurvivalPlayer(
+      player,
+      "tocou no bloco azul mortal"
+    );
+
+    return;
+  }
+
+  if(hazard.direction==="leftToRight"){
+    player.x=
+      hazard.x+
+      hazard.w+
+      0.5;
+
+    player.vx=
+      Math.max(
+        player.vx,
+        hazard.vx
+      );
+
+    return;
+  }
+
+  if(hazard.direction==="rightToLeft"){
+    player.x=
+      hazard.x-
+      player.w-
+      0.5;
+
+    player.vx=
+      Math.min(
+        player.vx,
+        hazard.vx
+      );
+
+    return;
+  }
+
+  if(hazard.direction==="topToBottom"){
+    const pushedY=
+      hazard.y+
+      hazard.h+
+      0.5;
+
+    /*
+      Se não há espaço entre o obstáculo e a plataforma,
+      o jogador foi prensado.
+    */
+    if(
+      playerOverPlatform(player)&&
+      pushedY+
+      player.h>=
+      platform.y-
+      1
+    ){
+      eliminateSurvivalPlayer(
+        player,
+        "foi prensado contra a plataforma"
+      );
+
+      return;
+    }
+
+    player.y=
+      pushedY;
+
+    player.vy=
+      Math.max(
+        player.vy,
+        hazard.vy
+      );
+
+    return;
+  }
+
+  if(hazard.direction==="bottomToTop"){
+    player.y=
+      hazard.y-
+      player.h-
+      0.5;
+
+    player.vy=
+      Math.min(
+        player.vy,
+        hazard.vy
+      );
+
+    if(
+      player.y<=
+      SURVIVAL_ARENA.ceilingY
+    ){
+      eliminateSurvivalPlayer(
+        player,
+        "foi prensado contra o teto"
+      );
+    }
+  }
+}
+
+function updateSurvivalPlayer(
+  player,
+  input,
+  dt
+){
+  if(
+    player.alive===false||
+    state.finished
+  ){
+    return;
+  }
+
+  let direction=0;
+
+  if(input.left)direction--;
+  if(input.right)direction++;
+
+  player.vx=
+    direction*
+    MOVE_SPEED;
+
+  if(
+    input.jump&&
+    player.onGround&&
+    !player.jumpLock
+  ){
+    player.vy=
+      -JUMP_SPEED;
+
+    player.onGround=false;
+    player.jumpLock=true;
+  }
+
+  if(!input.jump){
+    player.jumpLock=false;
+  }
+
+  player.vy+=
+    GRAVITY*
+    dt;
+
+  player.x+=
+    player.vx*
+    dt;
+
+  const previousBottom=
+    player.y+
+    player.h;
+
+  player.y+=
+    player.vy*
+    dt;
+
+  resolveSurvivalPlatform(
+    player,
+    previousBottom
+  );
+
+  if(
+    player.y<=
+    SURVIVAL_ARENA.ceilingY
+  ){
+    eliminateSurvivalPlayer(
+      player,
+      "tocou no teto"
+    );
+
+    return;
+  }
+
+  for(
+    const hazard
+    of state.hazards
+  ){
+    applySurvivalHazardPush(
+      player,
+      hazard
+    );
+
+    if(state.finished)return;
+  }
+
+  /*
+    Após ser empurrado para baixo, verificamos novamente
+    a relação com a plataforma para detectar esmagamento.
+  */
+  if(
+    playerOverPlatform(player)&&
+    player.y+
+    player.h>
+    SURVIVAL_ARENA.platform.y+
+    1
+  ){
+    eliminateSurvivalPlayer(
+      player,
+      "foi prensado contra a plataforma"
+    );
+
+    return;
+  }
+
+  if(
+    player.y>
+    WORLD.h+
+    30
+  ){
+    eliminateSurvivalPlayer(
+      player,
+      "caiu da plataforma"
+    );
+
+    return;
+  }
+
+  /*
+    Se saiu horizontalmente da plataforma, não há piso.
+    A gravidade fará a queda normalmente.
+  */
+}
+
+function updateSurvivalHazards(dt){
+  for(
+    const hazard
+    of state.hazards
+  ){
+    hazard.age+=dt;
+    hazard.x+=hazard.vx*dt;
+    hazard.y+=hazard.vy*dt;
+  }
+
+  state.hazards=
+    state.hazards.filter(
+      hazard=>{
+        if(
+          hazard.direction==="leftToRight"
+        ){
+          return hazard.x<
+            WORLD.w+
+            100;
+        }
+
+        if(
+          hazard.direction==="rightToLeft"
+        ){
+          return hazard.x+
+            hazard.w>
+            -100;
+        }
+
+        if(
+          hazard.direction==="topToBottom"
+        ){
+          return hazard.y<
+            WORLD.h+
+            120;
+        }
+
+        return hazard.y+
+          hazard.h>
+          -120;
+      }
+    );
+}
+
+function survivalHostUpdate(dt){
+  if(state.finished)return;
+
+  state.elapsed+=dt;
+  state.spawnTimer-=dt;
+
+  const playerCount=
+    Math.max(
+      2,
+      state.players?.length||
+      2
+    );
+
+  if(
+    state.spawnTimer<=0
+  ){
+    /*
+      Mais jogadores permitem mais ameaças simultâneas,
+      porém o crescimento é controlado.
+    */
+    const maxHazards=
+      3+
+      Math.min(
+        7,
+        Math.ceil(
+          playerCount*.55
+        )
+      )+
+      Math.min(
+        4,
+        Math.floor(
+          state.elapsed/30
+        )
+      );
+
+    if(
+      state.hazards.length<
+      maxHazards
+    ){
+      state.hazards.push(
+        createSurvivalHazard(
+          state
+        )
+      );
+    }
+
+    const difficulty=
+      Math.min(
+        1,
+        state.elapsed/110
+      );
+
+    const groupPressure=
+      Math.min(
+        .28,
+        Math.max(
+          0,
+          playerCount-2
+        )*.018
+      );
+
+    state.spawnTimer=
+      randomBetween(
+        Math.max(
+          .65,
+          1.45-
+          difficulty*.38-
+          groupPressure
+        ),
+        Math.max(
+          1.05,
+          2.25-
+          difficulty*.62-
+          groupPressure
+        )
+      );
+  }
+
+  updateSurvivalHazards(
+    dt
+  );
+
+  for(
+    const player
+    of state.players||[]
+  ){
+    if(state.finished)break;
+
+    updateSurvivalPlayer(
+      player,
+      survivalInputForPlayer(
+        player
+      ),
+      dt
+    );
+  }
+
+  updateSurvivalTimer(
+    state.elapsed
+  );
+}
+
+function resetSurvival(
+  broadcast=false
+){
+  state=
+    newSurvivalState(
+      gameMode==="online"
+        ?activeMatchRoster
+        :undefined
+    );
+
+  remoteState=
+    newSurvivalState(
+      gameMode==="online"
+        ?activeMatchRoster
+        :undefined
+    );
+
+  hideEnd();
+  setEndActions("none");
+  updateSurvivalTimer(0);
+
+  if(
+    broadcast&&
+    gameMode==="online"
+  ){
+    sendGame({
+      type:"restart"
+    });
+  }
+}
+
+function drawSurvivalWorld(
+  renderCtx,
+  renderCanvas,
+  drawState,
+  viewer
+){
+  const scale=
+    Math.min(
+      renderCanvas.width/WORLD.w,
+      renderCanvas.height/WORLD.h
+    );
+
+  const ox=
+    (
+      renderCanvas.width-
+      WORLD.w*scale
+    )/2;
+
+  const oy=
+    (
+      renderCanvas.height-
+      WORLD.h*scale
+    )/2;
+
+  renderCtx.clearRect(
+    0,
+    0,
+    renderCanvas.width,
+    renderCanvas.height
+  );
+
+  renderCtx.save();
+  renderCtx.translate(ox,oy);
+  renderCtx.scale(scale,scale);
+
+  renderCtx.fillStyle="#161e2b";
+  renderCtx.fillRect(
+    0,0,
+    WORLD.w,
+    WORLD.h
+  );
+
+  renderCtx.strokeStyle=
+    "rgba(255,255,255,.035)";
+
+  for(
+    let x=0;
+    x<=WORLD.w;
+    x+=50
+  ){
+    renderCtx.beginPath();
+    renderCtx.moveTo(x,0);
+    renderCtx.lineTo(x,WORLD.h);
+    renderCtx.stroke();
+  }
+
+  /*
+    Teto mortal.
+  */
+  renderCtx.fillStyle=
+    "rgba(255,80,90,.22)";
+
+  renderCtx.fillRect(
+    0,
+    0,
+    WORLD.w,
+    SURVIVAL_ARENA.ceilingY
+  );
+
+  renderCtx.strokeStyle="#ff5b68";
+  renderCtx.lineWidth=5;
+
+  renderCtx.beginPath();
+  renderCtx.moveTo(
+    0,
+    SURVIVAL_ARENA.ceilingY
+  );
+  renderCtx.lineTo(
+    WORLD.w,
+    SURVIVAL_ARENA.ceilingY
+  );
+  renderCtx.stroke();
+
+  /*
+    Plataforma neutra compartilhada.
+  */
+  const platform=
+    SURVIVAL_ARENA.platform;
+
+  renderCtx.fillStyle="#8b96a8";
+
+  renderCtx.fillRect(
+    platform.x,
+    platform.y,
+    platform.w,
+    platform.h
+  );
+
+  renderCtx.strokeStyle="#d9e0ea";
+  renderCtx.lineWidth=4;
+
+  renderCtx.strokeRect(
+    platform.x,
+    platform.y,
+    platform.w,
+    platform.h
+  );
+
+  for(
+    const hazard
+    of (
+      drawState.hazards||
+      []
+    )
+  ){
+    const dynamicVision=
+      gameMode==="online"&&
+      activeMatchRoster.length>=2;
+
+    const visible=
+      hazard.color==="blue"||
+      (
+        dynamicVision&&
+        Number(
+          hazard.ownerSlot
+        )===
+        Number(
+          viewer
+        )
+      )||
+      (
+        !dynamicVision&&
+        viewer===1&&
+        hazard.color==="yellow"
+      )||
+      (
+        !dynamicVision&&
+        viewer===2&&
+        hazard.color==="red"
+      );
+
+    if(!visible){
+      continue;
+    }
+
+    renderCtx.fillStyle=
+      hazard.color==="blue"
+        ?"#3995ff"
+        :dynamicVision
+          ?(
+              hazard.displayColor||
+              playerColorForSlot(
+                hazard.ownerSlot
+              )
+            )
+          :hazard.color==="yellow"
+            ?"#f2ca3c"
+            :"#e8515e";
+
+    renderCtx.fillRect(
+      hazard.x,
+      hazard.y,
+      hazard.w,
+      hazard.h
+    );
+
+    renderCtx.strokeStyle=
+      hazard.color==="blue"
+        ?"#a9d2ff"
+        :dynamicVision
+          ?(
+              hazard.displayStroke||
+              playerStrokeForSlot(
+                hazard.ownerSlot
+              )
+            )
+          :hazard.color==="yellow"
+            ?"#fff0a0"
+            :"#ff9aa4";
+
+    renderCtx.lineWidth=3;
+
+    renderCtx.strokeRect(
+      hazard.x,
+      hazard.y,
+      hazard.w,
+      hazard.h
+    );
+
+    renderCtx.fillStyle=
+      hazard.color==="blue"
+        ?"#e7f4ff"
+        :"rgba(0,0,0,.6)";
+
+    renderCtx.font=
+      "bold 18px Arial";
+
+    const arrow=
+      hazard.color==="blue"
+        ?"✕"
+        :hazard.direction==="leftToRight"
+          ?"→"
+          :hazard.direction==="rightToLeft"
+            ?"←"
+            :hazard.direction==="topToBottom"
+              ?"↓"
+              :"↑";
+
+    renderCtx.fillText(
+      arrow,
+      hazard.x+
+      hazard.w/2-
+      6,
+      hazard.y+
+      Math.min(
+        hazard.h-8,
+        24
+      )
+    );
+  }
+
+  for(
+    const player
+    of (
+      drawState.players||
+      []
+    )
+  ){
+    const dynamicPlayer=
+      gameMode==="online"&&
+      player.slot!==undefined;
+
+    const color=
+      dynamicPlayer
+        ?playerColorForSlot(
+            player.slot
+          )
+        :player.id===1
+          ?"#ffd84a"
+          :"#ff5b68";
+
+    renderCtx.save();
+
+    if(
+      player.alive===
+      false
+    ){
+      renderCtx.globalAlpha=.30;
+    }
+
+    renderCtx.fillStyle=
+      color;
+
+    renderCtx.fillRect(
+      player.x,
+      player.y,
+      player.w,
+      player.h
+    );
+
+    renderCtx.fillStyle="#10131b";
+
+    renderCtx.fillRect(
+      player.x+7,
+      player.y+10,
+      5,
+      5
+    );
+
+    renderCtx.fillRect(
+      player.x+
+      Math.max(
+        18,
+        player.w-12
+      ),
+      player.y+10,
+      5,
+      5
+    );
+
+    renderCtx.fillStyle="#fff";
+    renderCtx.font="bold 13px Arial";
+
+    const label=
+      dynamicPlayer
+        ?`P${(Number(player.slot)||0)+1}`
+        :`P${player.id}`;
+
+    renderCtx.fillText(
+      label,
+      player.x+4,
+      player.y-8
+    );
+
+    if(
+      player.alive===
+      false
+    ){
+      renderCtx.font=
+        "bold 18px Arial";
+
+      renderCtx.fillText(
+        "☠",
+        player.x+
+        player.w/2-
+        7,
+        player.y+
+        player.h/2+
+        6
+      );
+    }
+
+    renderCtx.restore();
+  }
+
+  renderCtx.restore();
+}
+
+function drawSurvival(){
+  const drawState=
+    gameMode==="offline"
+      ?state
+      :role==="host"
+        ?state
+        :remoteState;
+
+  const elapsed=
+    drawState?.elapsed||
+    0;
+
+  updateSurvivalTimer(
+    elapsed
+  );
+
+  if(
+    gameMode==="offline"
+  ){
+    drawSurvivalWorld(
+      offlineCtxP1,
+      offlineCanvasP1,
+      drawState,
+      1
+    );
+
+    drawSurvivalWorld(
+      offlineCtxP2,
+      offlineCanvasP2,
+      drawState,
+      2
+    );
+
+    return;
+  }
+
+  drawSurvivalWorld(
+    ctx,
+    canvas,
+    drawState,
+    gameMode==="online"
+      ?Number(
+          myRoomSlot??0
+        )
+      :role==="host"
+        ?1
+        :2
+  );
+}
+
+
+function roomColorSeed(){
+  const text=String(roomCode||"LOCAL");
+  let hash=2166136261;
+
+  for(let i=0;i<text.length;i++){
+    hash^=text.charCodeAt(i);
+    hash=Math.imul(hash,16777619);
+  }
+
+  return Math.abs(hash)%360;
+}
+
+function playerHueForSlot(slot){
+  const base=roomColorSeed();
+  let hue=(base+(Number(slot)||0)*137.508)%360;
+
+  /* Azul permanece reservado exclusivamente aos blocos mortais. */
+  if(hue>=185&&hue<=255){
+    hue=(hue+78)%360;
+  }
+
+  if(hue>=185&&hue<=255){
+    hue=(hue+110)%360;
+  }
+
+  return hue;
+}
+
+function playerColorForSlot(slot){
+  const hue=playerHueForSlot(slot);
+  return `hsl(${hue.toFixed(1)} 82% 56%)`;
+}
+
+function playerStrokeForSlot(slot){
+  const hue=playerHueForSlot(slot);
+  return `hsl(${hue.toFixed(1)} 90% 76%)`;
+}
+
+function getRoomPlayer(playerId){
+  return roomPlayers.find(
+    player=>player.playerId===playerId
+  )||null;
+}
+
+function renderLobbyRoster(){
+  const list=$("playerList");
+  const count=$("playerCountBadge");
+  const start=$("startLobbyGame");
+
+  if(!list||!count||!start)return;
+
+  const ordered=[...roomPlayers].sort(
+    (a,b)=>(a.slot??9999)-(b.slot??9999)
+  );
+
+  count.textContent=String(ordered.length);
+  list.innerHTML="";
+
+  for(const player of ordered){
+    const card=document.createElement("div");
+    card.className="playerLobbyCard";
+
+    const dot=document.createElement("div");
+    dot.className="playerColorDot";
+    dot.style.background=playerColorForSlot(player.slot);
+
+    const meta=document.createElement("div");
+    meta.className="playerLobbyMeta";
+
+    const name=document.createElement("div");
+    name.className="playerLobbyName";
+
+    const number=(Number(player.slot)||0)+1;
+    const isMe=player.playerId===PLAYER_ID;
+
+    name.textContent=
+      `Jogador ${number}${player.role==="host"?" · HOST":""}${isMe?" · VOCÊ":""}`;
+
+    const id=document.createElement("div");
+    id.className="playerLobbyId";
+    id.textContent=player.playerId;
+
+    meta.append(name,id);
+    card.append(dot,meta);
+    list.append(card);
+  }
+
+  const me=getRoomPlayer(PLAYER_ID);
+  myRoomSlot=me?.slot??null;
+
+  if(role==="host"){
+    start.classList.remove("hidden");
+
+    const clients=ordered.filter(
+      player=>player.role==="client"
+    );
+
+    const courseCanStart=
+      gameType==="course"&&
+      ordered.length>=2&&
+      clients.length>=1;
+
+    const survivalCanStart=
+      gameType==="survival"&&
+      ordered.length>=2&&
+      clients.length>=1;
+
+    start.disabled=
+      !(courseCanStart||survivalCanStart)||
+      matchStarting||
+      gameStarted;
+
+    if(ordered.length===1){
+      $("lobbyMessage").textContent=
+        "Sala criada. Compartilhe o código; vários jogadores podem entrar.";
+    }else if(gameType==="survival"){
+      $("lobbyMessage").textContent=
+        `${ordered.length} jogadores conectados. O Host já pode iniciar o Modo 2 multiplayer.`;
+    }else if(gameType==="course"){
+      $("lobbyMessage").textContent=
+        `${ordered.length} jogadores conectados. O Host já pode iniciar o Modo 1 multiplayer.`;
+    }else{
+      $("lobbyMessage").textContent=
+        "2 jogadores conectados. Pronto para iniciar.";
+    }
+  }else{
+    start.classList.add("hidden");
+    $("lobbyMessage").textContent=
+      `${ordered.length} jogador(es) na sala. Aguardando o Host iniciar.`;
+  }
+}
+
+function resetRoster(){
+  roomPlayers=[];
+  myRoomSlot=null;
+  activePeerId=null;
+  activeMatchRoster=[];
+  matchStarting=false;
+  transportMode="websocket";
+  stopMatchStartWatch();
+  remoteInputsByPlayer.clear();
+
+  if($("playerList")){
+    $("playerList").innerHTML="";
+  }
+
+  if($("playerCountBadge")){
+    $("playerCountBadge").textContent="0";
+  }
+}
+
+function orderedCurrentRoster(){
+  return [...roomPlayers].sort(
+    (a,b)=>(a.slot??9999)-(b.slot??9999)
+  );
+}
+
+function activeClientIds(){
+  return activeMatchRoster
+    .filter(player=>player.role==="client")
+    .map(player=>player.playerId);
+}
+
+async function beginLobbyGame(){
+  if(
+    role!=="host"||
+    matchStarting||
+    gameStarted
+  ){
+    return;
+  }
+
+  const ordered=
+    orderedCurrentRoster();
+
+  const clients=
+    ordered.filter(
+      player=>
+        player.role==="client"
+    );
+
+  if(
+    ordered.length<2||
+    clients.length<1
+  ){
+    $("lobbyMessage").textContent=
+      "É necessário pelo menos 2 jogadores para iniciar.";
+    return;
+  }
+
+  activeMatchRoster=
+    ordered.map(
+      player=>({
+        playerId:
+          player.playerId,
+        role:
+          player.role,
+        slot:
+          Number(
+            player.slot
+          )||0
+      })
+    );
+
+  matchStarting=true;
+  transportMode="websocket";
+
+  /*
+    Cada cliente terá seu próprio estado de input,
+    mas todos os pacotes trafegam pelo WebSocket da sala.
+  */
+  remoteInputsByPlayer.clear();
+
+  for(
+    const player
+    of clients
+  ){
+    remoteInputsByPlayer.set(
+      player.playerId,
+      {
+        left:false,
+        right:false,
+        jump:false
+      }
+    );
+  }
+
+  $("startLobbyGame").disabled=true;
+  $("lobbyMessage").textContent=
+    `Servidor da sala pronto. Iniciando ${ordered.length} jogadores...`;
+
+  try{
+    /*
+      A sessão é enviada primeiro para que cada cliente conheça
+      o roster e seu slot antes de receber o mapa.
+    */
+    sendGame({
+      type:"session",
+      gameType,
+      roster:
+        activeMatchRoster,
+      transport:
+        "websocket"
+    });
+
+    if(gameType==="survival"){
+      state=
+        newSurvivalState(
+          activeMatchRoster
+        );
+
+      remoteState=
+        newSurvivalState(
+          activeMatchRoster
+        );
+
+      gameStarted=true;
+      matchStarting=false;
+
+      startGame();
+      return;
+    }
+
+    await loadNextMapForPair();
+
+  }catch(error){
+    console.error(
+      "Falha ao iniciar partida via WebSocket:",
+      error
+    );
+
+    matchStarting=false;
+
+    $("startLobbyGame").disabled=
+      false;
+
+    $("lobbyMessage").textContent=
+      "Falha ao iniciar a partida: "+
+      error.message;
+  }
+}
+
+function allMatchChannelsOpen(){
+  const ids=
+    activeClientIds();
+
+  if(ids.length===0){
+    return false;
+  }
+
+  return ids.every(
+    playerId=>{
+      const channel=
+        hostChannels.get(
+          playerId
+        );
+
+      return channel&&
+        channel.readyState===
+        "open";
+    }
+  );
+}
+
+async function maybeStartHostMatch(){
+  if(
+    role!=="host"||
+    gameStarted||
+    !matchStarting||
+    !allMatchChannelsOpen()
+  ){
+    return;
+  }
+
+  stopMatchStartWatch();
+
+  $("lobbyMessage").textContent=
+    "Todas as conexões P2P estão prontas. Carregando a partida...";
+
+  sendGame({
+    type:"session",
+    gameType,
+    roster:activeMatchRoster
+  });
+
+  if(gameType==="survival"){
+    state=newSurvivalState(activeMatchRoster);
+    remoteState=newSurvivalState(activeMatchRoster);
+    gameStarted=true;
+    matchStarting=false;
+    startGame();
+    return;
+  }
+
+  await loadNextMapForPair();
+}
+
+function randomRoom(){const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let o="";for(let i=0;i<6;i++)o+=c[Math.floor(Math.random()*c.length)];return o}
+function setScreen(n){$("menu").classList.toggle("active",n==="menu");$("game").classList.toggle("active",n==="game");if(n==="game")requestAnimationFrame(resizeCanvas)}
+function showLobby(){
+  $("home").classList.add("hidden");
+  $("lobby").classList.remove("hidden");
+  $("roomCode").textContent=roomCode;
+  $("lobbyTitle").textContent=role==="host"?"Sala multiplayer criada":"Entrando na sala multiplayer";
+  $("lobbyMessage").textContent=role==="host"?"Compartilhe este código. A sala agora aceita vários jogadores.":"Conectando à sala...";
+  resetRoster();
+}
+function resetPresence(){resetRoster()}
+$("createRoom").onclick=()=>{gameMode="online";gameType="course";roomCode=randomRoom();role="host";document.body.className="role-host";updateMapPanelForRole();showLobby();connectSignal()};
+$("joinRoom").onclick=()=>{gameMode="online";gameType="waiting";const c=$("roomInput").value.toUpperCase().replace(/[^A-Z0-9]/g,"").trim();if(c.length<4){$("menuStatus").textContent="Digite um código válido.";return}roomCode=c;role="client";document.body.className="role-client";updateMapPanelForRole();showLobby();connectSignal()};
+$("startOfflineBtn").onclick=()=>{startOfflineGame("course")};
+$("startOfflineSurvivalBtn").onclick=()=>{startOfflineGame("survival")};
+$("createSurvivalRoom").onclick=()=>{
+  gameMode="online";
+  gameType="survival";
+  roomCode=randomRoom();
+  role="host";
+  document.body.className="role-host survival-mode";
+  updateMapPanelForRole();
+  showLobby();
+  $("lobbyMessage").textContent="Modo 2 — Sobrevivência. Compartilhe o código com o Jogador 2.";
+  connectSignal();
+};
+$("startLobbyGame").onclick=()=>{beginLobbyGame()};
+$("copyRoom").onclick=async()=>{try{await navigator.clipboard.writeText(roomCode)}catch{}};$("leaveLobby").onclick=returnToMenu;$("menuBtn").onclick=returnToMenu;
+function returnToMenu(){
+  gameStarted=false;
+  cleanupConnectionForModeChange();
+  gameMode="online";
+  gameType="course";
+  role=null;
+  document.body.className="";
+  $("lobby").classList.add("hidden");
+  $("home").classList.remove("hidden");
+  resetPresence();
+  $("canvas").classList.remove("hidden");
+  $("offlineViews").classList.add("hidden");
+  $("survivalTimer").classList.add("hidden");
+  $("mapPanel").classList.remove("hidden");
+  setScreen("menu");
+}
+function connectSignal(){
+  const url=
+    `${SIGNAL_SERVER}/room/${roomCode}?role=${role}&player_id=${encodeURIComponent(PLAYER_ID)}`;
+
+  console.log("Conectando ao WebSocket:",url);
+
+  try{
+    signal=new WebSocket(url);
+  }catch(error){
+    console.error("Erro ao criar WebSocket:",error);
+    $("lobbyMessage").textContent="Não foi possível abrir o WebSocket.";
+    return;
+  }
+
+  signal.onopen=()=>{
+    console.log("WebSocket ABERTO:",signal.url);
+    $("lobbyMessage").textContent=
+      role==="host"
+        ?"Sala criada. Aguardando jogadores..."
+        :"Conectado à sala. Aguardando lista de jogadores...";
+  };
+
+  signal.onmessage=async e=>{
+    if(e.data==="pong")return;
+
+    let m;
+    try{
+      m=JSON.parse(e.data);
+    }catch{
+      return;
+    }
+
+    console.log("Sinal recebido:",m.type,m);
+
+    if(m.type==="game-relay"){
+      transportMode="websocket";
+
+      await handleWebSocketGameMessage(
+        m.payload,
+        String(
+          m.from||
+          ""
+        )
+      );
+
+      return;
+    }
+
+    if(m.type==="presence"||m.type==="roster"){
+      if(m.type==="presence"&&!Array.isArray(m.players)){
+        roomPlayers=[];
+        $("playerCountBadge").textContent="—";
+        $("playerList").innerHTML=
+          '<div class="status" style="color:#ff9aa4">Worker antigo detectado. Publique o Worker V8.1.</div>';
+        $("lobbyMessage").textContent=
+          "Servidor antigo detectado: atualize o Cloudflare Worker.";
+        return;
+      }
+
+      roomPlayers=Array.isArray(m.players)?m.players:[];
+      renderLobbyRoster();
+      return;
+    }
+
+    if(m.type==="offer"&&role==="client"){
+      activePeerId=String(m.from||"");
+
+      await createClientPeerConnection(
+        activePeerId
+      );
+
+      await pc.setRemoteDescription(
+        m.sdp
+      );
+
+      await flushClientIce();
+
+      const answer=
+        await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      signalSend({
+        type:"answer",
+        to:activePeerId,
+        sdp:pc.localDescription
+      });
+      return;
+    }
+
+    if(m.type==="answer"&&role==="host"){
+      const peerId=
+        String(
+          m.from||
+          ""
+        );
+
+      const peerPc=
+        hostPeerConnections.get(
+          peerId
+        );
+
+      if(peerPc){
+        try{
+          await peerPc.setRemoteDescription(
+            m.sdp
+          );
+
+          await flushHostIce(
+            peerId
+          );
+        }catch(error){
+          console.error(
+            "Erro ao aplicar answer do cliente:",
+            peerId,
+            error
+          );
+        }
+      }
+
+      return;
+    }
+
+    if(m.type==="ice-candidate"&&m.candidate){
+      if(role==="host"){
+        const peerId=
+          String(
+            m.from||
+            ""
+          );
+
+        const peerPc=
+          hostPeerConnections.get(
+            peerId
+          );
+
+        if(!peerPc){
+          hostIceQueue(
+            peerId
+          ).push(
+            m.candidate
+          );
+
+          return;
+        }
+
+        if(
+          !peerPc.remoteDescription
+        ){
+          hostIceQueue(
+            peerId
+          ).push(
+            m.candidate
+          );
+
+          return;
+        }
+
+        try{
+          await peerPc.addIceCandidate(
+            m.candidate
+          );
+        }catch(error){
+          console.warn(
+            "Erro ICE no Host:",
+            peerId,
+            error
+          );
+        }
+
+        return;
+      }
+
+      /*
+        Em WebRTC, o candidato pode chegar enquanto o callback da offer
+        ainda está executando. Guardamos o candidato até
+        setRemoteDescription() terminar.
+      */
+      if(
+        !pc||
+        !pc.remoteDescription
+      ){
+        clientPendingIce.push(
+          m.candidate
+        );
+
+        return;
+      }
+
+      try{
+        await pc.addIceCandidate(
+          m.candidate
+        );
+      }catch(error){
+        console.warn(
+          "Erro ICE no Cliente:",
+          error
+        );
+      }
+
+      return;
+    }
+
+    if(m.type==="peer-left"){
+      const departedId=String(m.playerId||"");
+
+      if(role==="host"){
+        closeHostPeer(departedId);
+
+        if(gameStarted){
+          const player=
+            state.players?.find(
+              p=>
+                p.playerId===
+                departedId
+            );
+
+          if(player){
+            player.connected=false;
+
+            if(
+              player.alive!==
+              false
+            ){
+              if(gameType==="survival"){
+                eliminateSurvivalPlayer(
+                  player,
+                  "desconectou da sala"
+                );
+              }else if(gameType==="course"){
+                eliminateMultiplayerPlayer(
+                  player,
+                  "desconectou da sala"
+                );
+              }
+            }
+          }
+        }
+      }else if(departedId===activePeerId){
+        $("netText").textContent="Host desconectado";
+        if(gameStarted){
+          showEnd(
+            "Conexão encerrada",
+            "O Host saiu da sala."
+          );
+        }
+        cleanupRTC();
+      }
+
+      return;
+    }
+  };
+
+  signal.onerror=event=>{
+    console.error("WebSocket ERROR:",event);
+    $("lobbyMessage").textContent="Erro na conexão WebSocket. Veja o console.";
+  };
+
+  signal.onclose=event=>{
+    console.log("WebSocket fechado:",{
+      code:event.code,
+      reason:event.reason,
+      wasClean:event.wasClean
+    });
+
+    if(!gameStarted){
+      $("lobbyMessage").textContent=
+        `WebSocket fechado — código ${event.code}`+
+        (event.reason?` — ${event.reason}`:"");
+    }
+  };
+}
+
+function signalSend(o){
+  if(signal&&signal.readyState===WebSocket.OPEN){
+    signal.send(JSON.stringify(o));
+  }
+}
+
+
+function openMatchChannelIds(){
+  return activeClientIds().filter(
+    playerId=>
+      hostChannels.get(playerId)?.readyState==="open"
+  );
+}
+
+function updateMatchStartProgress(){
+  if(
+    role!=="host"||
+    !matchStarting||
+    gameStarted
+  ){
+    return;
+  }
+
+  const ids=
+    activeClientIds();
+
+  const opened=
+    openMatchChannelIds();
+
+  $("lobbyMessage").textContent=
+    `Preparando conexões P2P: ${opened.length}/${ids.length} prontas.`;
+}
+
+function stopMatchStartWatch(){
+  if(matchStartWatchTimer){
+    clearInterval(
+      matchStartWatchTimer
+    );
+
+    matchStartWatchTimer=null;
+  }
+}
+
+function startMatchStartWatch(){
+  stopMatchStartWatch();
+
+  const startedAt=
+    performance.now();
+
+  matchStartWatchTimer=
+    setInterval(
+      async()=>{
+        if(
+          !matchStarting||
+          gameStarted||
+          role!=="host"
+        ){
+          stopMatchStartWatch();
+          return;
+        }
+
+        updateMatchStartProgress();
+
+        await maybeStartHostMatch();
+
+        if(
+          performance.now()-
+          startedAt>
+          20000
+        ){
+          const ids=
+            activeClientIds();
+
+          const opened=
+            openMatchChannelIds();
+
+          const missing=
+            ids.filter(
+              id=>
+                !opened.includes(id)
+            );
+
+          console.warn(
+            "Timeout preparando a partida.",
+            {
+              opened,
+              missing
+            }
+          );
+
+          matchStarting=false;
+          stopMatchStartWatch();
+
+          $("startLobbyGame").disabled=
+            false;
+
+          $("lobbyMessage").textContent=
+            `Não foi possível abrir todas as conexões P2P (${opened.length}/${ids.length}). Clique em Iniciar partida para tentar novamente.`;
+        }
+      },
+      400
+    );
+}
+
+function hostIceQueue(peerId){
+  if(
+    !hostPendingIce.has(peerId)
+  ){
+    hostPendingIce.set(
+      peerId,
+      []
+    );
+  }
+
+  return hostPendingIce.get(
+    peerId
+  );
+}
+
+async function flushHostIce(peerId){
+  const peerPc=
+    hostPeerConnections.get(
+      peerId
+    );
+
+  if(
+    !peerPc||
+    !peerPc.remoteDescription
+  ){
+    return;
+  }
+
+  const queue=
+    hostIceQueue(
+      peerId
+    );
+
+  while(queue.length){
+    const candidate=
+      queue.shift();
+
+    try{
+      await peerPc.addIceCandidate(
+        candidate
+      );
+    }catch(error){
+      console.warn(
+        "Falha ao aplicar ICE do cliente:",
+        peerId,
+        error
+      );
+    }
+  }
+}
+
+async function flushClientIce(){
+  if(
+    !pc||
+    !pc.remoteDescription
+  ){
+    return;
+  }
+
+  while(
+    clientPendingIce.length
+  ){
+    const candidate=
+      clientPendingIce.shift();
+
+    try{
+      await pc.addIceCandidate(
+        candidate
+      );
+    }catch(error){
+      console.warn(
+        "Falha ao aplicar ICE do Host:",
+        error
+      );
+    }
+  }
+}
+
+function rtcConfig(){
+  return{
+    iceServers:[
+      {urls:"stun:stun.l.google.com:19302"},
+      {urls:"stun:stun1.l.google.com:19302"}
+    ]
+  };
+}
+
+async function createHostPeerConnection(peerId){
+  closeHostPeer(peerId);
+
+  hostPendingIce.set(
+    peerId,
+    []
+  );
+
+  const peerPc=
+    new RTCPeerConnection(
+      rtcConfig()
+    );
+
+  hostPeerConnections.set(
+    peerId,
+    peerPc
+  );
+
+  peerPc.onicecandidate=e=>{
+    if(e.candidate){
+      signalSend({
+        type:"ice-candidate",
+        to:peerId,
+        candidate:e.candidate
+      });
+    }
+  };
+
+  peerPc.onconnectionstatechange=()=>{
+    const s=
+      peerPc.connectionState;
+
+    console.log(
+      "P2P Host ->",
+      peerId,
+      s
+    );
+
+    if(
+      s==="failed"||
+      s==="disconnected"
+    ){
+      $("netText").textContent=
+        "Uma conexão está instável";
+    }
+
+    if(s==="connected"){
+      updateMatchStartProgress();
+      maybeStartHostMatch();
+    }
+
+    if(s==="closed"){
+      closeHostPeer(
+        peerId,
+        false
+      );
+    }
+  };
+
+  const ch=peerPc.createDataChannel(
+    "game",
+    {ordered:true}
+  );
+
+  bindDataChannel(ch,peerId);
+
+  const offer=await peerPc.createOffer();
+  await peerPc.setLocalDescription(offer);
+
+  signalSend({
+    type:"offer",
+    to:peerId,
+    sdp:peerPc.localDescription
+  });
+
+  return peerPc;
+}
+
+async function createClientPeerConnection(hostId){
+  try{
+    channel?.close();
+  }catch{}
+
+  try{
+    pc?.close();
+  }catch{}
+
+  channel=null;
+  clientPendingIce=[];
+
+  pc=
+    new RTCPeerConnection(
+      rtcConfig()
+    );
+
+  activePeerId=
+    hostId;
+
+  pc.onicecandidate=e=>{
+    if(e.candidate){
+      signalSend({
+        type:"ice-candidate",
+        to:activePeerId,
+        candidate:e.candidate
+      });
+    }
+  };
+
+  pc.onconnectionstatechange=()=>{
+    const s=pc.connectionState;
+
+    if(s==="failed"||s==="disconnected"){
+      $("netText").textContent="Conexão instável";
+    }
+
+    if(s==="connected"){
+      $("netText").textContent="Conectado";
+    }
+  };
+
+  pc.ondatachannel=e=>
+    bindDataChannel(e.channel,hostId);
+
+  return pc;
+}
+
+function closeHostPeer(peerId,closePc=true){
+  const ch=hostChannels.get(peerId);
+  const peerPc=hostPeerConnections.get(peerId);
+
+  if(closePc){
+    try{ch?.close()}catch{}
+    try{peerPc?.close()}catch{}
+  }
+
+  hostChannels.delete(peerId);
+  hostPeerConnections.delete(peerId);
+  hostPendingIce.delete(peerId);
+  remoteInputsByPlayer.delete(peerId);
+}
+
+
+async function handleWebSocketGameMessage(
+  message,
+  fromPlayerId=null
+){
+  if(
+    !message||
+    typeof message!=="object"
+  ){
+    return;
+  }
+
+  const m=message;
+
+  if(role==="host"){
+    const peerId=
+      String(
+        fromPlayerId||
+        ""
+      );
+
+    if(m.type==="hello"){
+      if(peerId){
+        remoteInputsByPlayer.set(
+          peerId,
+          {
+            left:false,
+            right:false,
+            jump:false
+          }
+        );
+      }
+
+      return;
+    }
+
+    if(m.type==="input"){
+      if(peerId){
+        remoteInputsByPlayer.set(
+          peerId,
+          m.input||{
+            left:false,
+            right:false,
+            jump:false
+          }
+        );
+      }
+
+      return;
+    }
+
+    if(m.type==="restart_request"){
+      if(gameType==="survival"){
+        resetSurvival(true);
+      }else{
+        resetMatch(true);
+      }
+
+      return;
+    }
+
+    return;
+  }
+
+  /*
+    CLIENTE
+  */
+  if(m.type==="session"){
+    transportMode=
+      m.transport||
+      "websocket";
+
+    gameType=
+      m.gameType||
+      "course";
+
+    activeMatchRoster=
+      Array.isArray(
+        m.roster
+      )
+        ?m.roster
+        :activeMatchRoster;
+
+    const me=
+      activeMatchRoster.find(
+        player=>
+          player.playerId===
+          PLAYER_ID
+      );
+
+    myRoomSlot=
+      me?.slot??
+      myRoomSlot;
+
+    document.body.classList.toggle(
+      "survival-mode",
+      gameType==="survival"
+    );
+
+    if(
+      gameType==="survival"&&
+      !gameStarted
+    ){
+      state=
+        newSurvivalState(
+          activeMatchRoster
+        );
+
+      remoteState=
+        newSurvivalState(
+          activeMatchRoster
+        );
+
+      gameStarted=true;
+
+      startGame();
+    }
+
+    return;
+  }
+
+  if(m.type==="map"){
+    transportMode="websocket";
+    gameType="course";
+
+    activeMatchRoster=
+      Array.isArray(
+        m.roster
+      )
+        ?m.roster
+        :activeMatchRoster;
+
+    const me=
+      activeMatchRoster.find(
+        player=>
+          player.playerId===
+          PLAYER_ID
+      );
+
+    myRoomSlot=
+      me?.slot??
+      myRoomSlot;
+
+    applyMap(
+      m.map
+    );
+
+    state=
+      newOnlineMultiplayerState(
+        activeMatchRoster
+      );
+
+    remoteState=
+      newOnlineMultiplayerState(
+        activeMatchRoster
+      );
+
+    hideEnd();
+
+    if(!gameStarted){
+      gameStarted=true;
+      startGame();
+    }
+
+    return;
+  }
+
+  if(m.type==="state"){
+    remoteState=
+      m.state;
+
+    updateLocalSpectatorStatus();
+
+    if(
+      remoteState.finished&&
+      remoteState.result
+    ){
+      if(gameType==="survival"){
+        recordSurvivalBest(
+          remoteState.elapsed||
+          0
+        );
+      }
+
+      showEnd(
+        remoteState.result.title,
+        remoteState.result.text
+      );
+    }
+
+    return;
+  }
+
+  if(m.type==="restart"){
+    if(gameType==="survival"){
+      remoteState=
+        newSurvivalState(
+          activeMatchRoster
+        );
+
+      state=
+        newSurvivalState(
+          activeMatchRoster
+        );
+
+      updateSurvivalTimer(0);
+    }else{
+      remoteState=
+        newOnlineMultiplayerState(
+          activeMatchRoster
+        );
+
+      state=
+        newOnlineMultiplayerState(
+          activeMatchRoster
+        );
+    }
+
+    hideEnd();
+    return;
+  }
+}
+
+function bindDataChannel(ch,peerId=null){
+  if(role==="host"){
+    hostChannels.set(peerId,ch);
+  }else{
+    channel=ch;
+  }
+
+  ch.onopen=()=>{
+    if(role==="client"){
+      sendGame({
+        type:"hello",
+        playerId:PLAYER_ID
+      });
+      $("lobbyMessage").textContent=
+        "P2P conectado. Aguardando a configuração da partida...";
+    }else{
+      const opened=
+        openMatchChannelIds();
+
+      const total=
+        activeClientIds().length;
+
+      $("lobbyMessage").textContent=
+        `Conexões P2P prontas: ${opened.length}/${total}.`;
+
+      updateMatchStartProgress();
+      maybeStartHostMatch();
+    }
+  };
+
+  ch.onclose=()=>{
+    if(role==="host"){
+      hostChannels.delete(
+        peerId
+      );
+
+      updateMatchStartProgress();
+    }else{
+      $("netText").textContent=
+        "P2P desconectado";
+    }
+  };
+
+  ch.onmessage=async e=>{
+    let m;
+    try{
+      m=JSON.parse(e.data);
+    }catch{
+      return;
+    }
+
+    if(role==="host"){
+      if(m.type==="hello"){
+        remoteInputsByPlayer.set(peerId,{
+          left:false,
+          right:false,
+          jump:false
+        });
+
+        sendGame({
+          type:"session",
+          gameType,
+          roster:activeMatchRoster
+        },peerId);
+
+        await maybeStartHostMatch();
+        return;
+      }
+
+      if(m.type==="input"){
+        if(gameType==="survival"){
+          remoteInput=m.input;
+        }else{
+          remoteInputsByPlayer.set(peerId,m.input);
+        }
+        return;
+      }
+
+      if(m.type==="restart_request"){
+        if(gameType==="survival"){
+          resetSurvival(true);
+        }else{
+          resetMatch(true);
+        }
+        return;
+      }
+    }else{
+      if(m.type==="session"){
+        gameType=m.gameType||"course";
+        activeMatchRoster=Array.isArray(m.roster)?m.roster:activeMatchRoster;
+
+        const me=activeMatchRoster.find(
+          player=>player.playerId===PLAYER_ID
+        );
+        myRoomSlot=me?.slot??myRoomSlot;
+
+        document.body.classList.toggle(
+          "survival-mode",
+          gameType==="survival"
+        );
+
+        if(gameType==="survival"&&!gameStarted){
+          state=newSurvivalState();
+          remoteState=newSurvivalState();
+          gameStarted=true;
+          startGame();
+        }
+        return;
+      }
+
+      if(m.type==="map"){
+        gameType="course";
+        activeMatchRoster=Array.isArray(m.roster)?m.roster:activeMatchRoster;
+
+        const me=activeMatchRoster.find(
+          player=>player.playerId===PLAYER_ID
+        );
+        myRoomSlot=me?.slot??myRoomSlot;
+
+        applyMap(m.map);
+        state=newOnlineMultiplayerState(activeMatchRoster);
+        remoteState=newOnlineMultiplayerState(activeMatchRoster);
+        hideEnd();
+
+        if(!gameStarted){
+          gameStarted=true;
+          startGame();
+        }
+        return;
+      }
+
+      if(m.type==="state"){
+        remoteState=m.state;
+        updateLocalSpectatorStatus();
+
+        if(remoteState.finished&&remoteState.result){
+          showEnd(
+            remoteState.result.title,
+            remoteState.result.text
+          );
+        }
+        return;
+      }
+
+      if(m.type==="restart"){
+        if(gameType==="survival"){
+          remoteState=newSurvivalState(activeMatchRoster);
+          state=newSurvivalState(activeMatchRoster);
+          updateSurvivalTimer(0);
+        }else{
+          remoteState=newOnlineMultiplayerState(activeMatchRoster);
+          state=newOnlineMultiplayerState(activeMatchRoster);
+        }
+        hideEnd();
+        return;
+      }
+    }
+  };
+}
+
+function cleanupRTC(){
+  try{channel?.close()}catch{}
+  try{pc?.close()}catch{}
+  channel=null;
+  pc=null;
+
+  for(const peerId of [...hostPeerConnections.keys()]){
+    closeHostPeer(peerId);
+  }
+
+  hostPeerConnections.clear();
+  hostChannels.clear();
+  hostPendingIce.clear();
+  clientPendingIce=[];
+  remoteInputsByPlayer.clear();
+  matchStarting=false;
+  stopMatchStartWatch();
+}
+
+function sendGame(o,targetId=null){
+  /*
+    V8.1.2:
+    Todo multiplayer online usa o WebSocket da sala como transporte
+    autoritativo. WebRTC permanece no arquivo apenas para compatibilidade
+    e testes futuros, mas não é necessário para iniciar a partida.
+  */
+  if(
+    gameMode==="online"&&
+    transportMode==="websocket"
+  ){
+    const packet={
+      type:"game-relay",
+      payload:o
+    };
+
+    if(targetId){
+      packet.to=
+        targetId;
+    }
+
+    signalSend(
+      packet
+    );
+
+    return;
+  }
+
+  /*
+    Caminho legado WebRTC.
+  */
+  const payload=
+    JSON.stringify(o);
+
+  if(role==="host"){
+    if(targetId){
+      const ch=
+        hostChannels.get(
+          targetId
+        );
+
+      if(
+        ch?.readyState===
+        "open"
+      ){
+        ch.send(
+          payload
+        );
+      }
+
+      return;
+    }
+
+    for(
+      const ch
+      of hostChannels.values()
+    ){
+      if(
+        ch.readyState===
+        "open"
+      ){
+        ch.send(
+          payload
+        );
+      }
+    }
+
+    return;
+  }
+
+  if(
+    channel&&
+    channel.readyState===
+    "open"
+  ){
+    channel.send(
+      payload
+    );
+  }
+}
+
+function startGame(){
+  if($("transportText")){
+    $("transportText").textContent=
+      gameMode==="offline"
+        ?"Local"
+        :transportMode==="websocket"
+          ?"WebSocket · Sala Cloudflare"
+          :"WebRTC P2P";
+  }
+
+  keys={};
+  touchInput={
+    left:false,
+    right:false,
+    jump:false
+  };
+
+  remoteInput={
+    left:false,
+    right:false,
+    jump:false
+  };
+
+  hideEnd();
+  setEndActions("none");
+
+  if(gameType==="survival"){
+    WORLD.w=1200;
+    WORLD.h=680;
+
+    if(
+      !state||
+      !Array.isArray(
+        state.hazards
+      )
+    ){
+      state=
+        newSurvivalState(
+          gameMode==="online"
+            ?activeMatchRoster
+            :undefined
+        );
+    }
+
+    if(
+      !remoteState||
+      !Array.isArray(
+        remoteState.hazards
+      )
+    ){
+      remoteState=
+        newSurvivalState(
+          gameMode==="online"
+            ?activeMatchRoster
+            :undefined
+        );
+    }
+
+    $("gameTitle").textContent=
+      "VISÕES CRUZADAS — MODO 2";
+
+    $("gameSubtitle").textContent=
+      "Cada jogador pode ser eliminado individualmente. A equipe sobrevive enquanto pelo menos um jogador continuar vivo.";
+
+    $("survivalTimer")
+      .classList
+      .remove("hidden");
+
+    $("mapPanel")
+      .classList
+      .add("hidden");
+
+    updateSurvivalTimer(0);
+    updatePhaseCounter();
+
+    if(gameMode==="offline"){
+      $("roleText").textContent=
+        "COUCH CO-OP · SOBREVIVÊNCIA";
+
+      $("roleText").style.color=
+        "#9fc6ff";
+
+      $("controlText").innerHTML=
+        "P1: <kbd>A</kbd>/<kbd>D</kbd>/<kbd>W</kbd> · P2: <kbd>←</kbd>/<kbd>→</kbd>/<kbd>↑</kbd>";
+
+      $("netText").textContent=
+        "OFFLINE";
+    }else if(role==="host"){
+      $("roleText").textContent=
+        "JOGADOR 1 · HOST";
+
+      $("roleText").style.color=
+        "var(--yellow)";
+
+      $("controlText").innerHTML=
+        "<kbd>A</kbd>/<kbd>D</kbd> mover · <kbd>W</kbd> pular";
+
+      $("netText").textContent=
+        transportMode==="websocket"
+          ?"Sala online"
+          :"Conectado";
+    }else{
+      $("roleText").textContent=
+        "JOGADOR 2";
+
+      $("roleText").style.color=
+        "var(--red)";
+
+      $("controlText").innerHTML=
+        "<kbd>←</kbd>/<kbd>→</kbd> mover · <kbd>↑</kbd> pular";
+
+      $("netText").textContent=
+        transportMode==="websocket"
+          ?"Sala online"
+          :"Conectado";
+    }
+
+    $("gameMsg").textContent=
+      "Modo 2: cada cor pertence a um jogador; o azul é visível para todos. Eliminados continuam como espectadores.";
+  }else{
+    if(gameMode==="online"&&activeMatchRoster.length>=2){
+      if(
+        !state||
+        !Array.isArray(state.runtimeBlocks)||
+        state.players?.length!==activeMatchRoster.length
+      ){
+        state=newOnlineMultiplayerState(activeMatchRoster);
+      }
+
+      if(
+        !remoteState||
+        !Array.isArray(remoteState.runtimeBlocks)||
+        remoteState.players?.length!==activeMatchRoster.length
+      ){
+        remoteState=newOnlineMultiplayerState(activeMatchRoster);
+      }
+    }else{
+      if(
+        !state||
+        !Array.isArray(state.runtimeBlocks)
+      ){
+        state=newState();
+      }
+      remoteState=newState();
+    }
+
+    $("gameTitle").textContent=
+      "VISÕES CRUZADAS — PROCEDURAL";
+
+    $("gameSubtitle").textContent=
+      "Rotas podem usar movimento, plataformas temporárias, obstáculos, blocos azuis e zigue-zague.";
+
+    $("survivalTimer")
+      .classList
+      .add("hidden");
+
+    updateMapPanelForRole();
+
+    if(gameMode==="offline"){
+      $("roleText").textContent=
+        "COUCH CO-OP";
+
+      $("roleText").style.color=
+        "#9fc6ff";
+
+      $("controlText").innerHTML=
+        "P1: <kbd>A</kbd>/<kbd>D</kbd>/<kbd>W</kbd> · P2: <kbd>←</kbd>/<kbd>→</kbd>/<kbd>↑</kbd>";
+
+      $("gameMsg").textContent=
+        "Modo offline em tela dividida.";
+
+      $("netText").textContent=
+        "OFFLINE";
+    }else{
+      const me=activeMatchRoster.find(
+        player=>player.playerId===PLAYER_ID
+      );
+
+      const slot=me?.slot??myRoomSlot??0;
+      const number=(Number(slot)||0)+1;
+      const color=playerColorForSlot(slot);
+
+      $("roleText").textContent=
+        `JOGADOR ${number}${role==="host"?" · HOST":""}`;
+
+      $("roleText").style.color=color;
+
+      $("controlText").innerHTML=
+        role==="host"
+          ?"<kbd>A</kbd>/<kbd>D</kbd> mover · <kbd>W</kbd> pular"
+          :"<kbd>←</kbd>/<kbd>→</kbd> mover · <kbd>↑</kbd> pular";
+
+      $("gameMsg").textContent=
+        `Sua visão usa a sua cor. Você colide com todas as plataformas, inclusive as invisíveis.`;
+
+      $("netText").textContent=
+        `Conectado · ${activeMatchRoster.length} jogadores`;
+    }
+  }
+
+  $("canvas")
+    .classList
+    .toggle(
+      "hidden",
+      gameMode==="offline"
+    );
+
+  $("offlineViews")
+    .classList
+    .toggle(
+      "hidden",
+      gameMode!=="offline"
+    );
+
+  setScreen("game");
+  refreshPlayerProgress();
+
+  lastTime=
+    performance.now();
+
+  accumulator=0;
+}
+
+function overlap(a,b){
+  return(
+    a.x<b.x+b.w&&
+    a.x+a.w>b.x&&
+    a.y<b.y+b.h&&
+    a.y+a.h>b.y
+  );
+}
+
+function solidRuntimeBlocks(gameState){
+  return(
+    gameState.runtimeBlocks||
+    []
+  ).filter(
+    block=>
+      block.active!==false&&
+      block.kind!=="death"
+  );
+}
+
+function deathRuntimeBlocks(gameState){
+  return(
+    gameState.runtimeBlocks||
+    []
+  ).filter(
+    block=>
+      block.active!==false&&
+      block.kind==="death"
+  );
+}
+
+function triangleWave(t){
+  const normalized=
+    ((t%1)+1)%1;
+
+  return normalized<0.5
+    ?-1+normalized*4
+    :3-normalized*4;
+}
+
+function updateRuntimeBlocks(gameState,dt){
+  gameState.elapsed=
+    (gameState.elapsed||0)+dt;
+
+  if(
+    !Array.isArray(
+      gameState.runtimeBlocks
+    )
+  ){
+    gameState.runtimeBlocks=
+      createRuntimeBlocks();
+  }
+
+  for(
+    const block
+    of gameState.runtimeBlocks
+  ){
+    const oldX=block.x;
+    const oldY=block.y;
+
+    block.active=true;
+    block.x=block.baseX;
+    block.y=block.baseY;
+
+    const behavior=
+      block.behavior;
+
+    if(
+      behavior?.type==="moving"
+    ){
+      const range=
+        Math.max(
+          1,
+          Number(
+            behavior.range||
+            40
+          )
+        );
+
+      const speed=
+        Math.max(
+          1,
+          Number(
+            behavior.speed||
+            40
+          )
+        );
+
+      /*
+        Para ir de -range até +range e voltar,
+        a plataforma percorre 4*range por ciclo.
+      */
+      const period=
+        (4*range)/speed;
+
+      const phase=
+        Number(
+          behavior.phase||
+          0
+        );
+
+      const wave=
+        triangleWave(
+          gameState.elapsed/
+          period+
+          phase
+        );
+
+      const offset=
+        wave*range;
+
+      if(
+        behavior.axis==="y"
+      ){
+        block.y=
+          block.baseY+
+          offset;
+      }else{
+        block.x=
+          block.baseX+
+          offset;
+      }
+    }
+
+    if(
+      behavior?.type==="blink"
+    ){
+      const period=
+        Number(
+          behavior.period||
+          10
+        );
+
+      const visibleFor=
+        Number(
+          behavior.visibleFor||
+          5
+        );
+
+      const phase=
+        Number(
+          behavior.phase||
+          0
+        );
+
+      const time=
+        (
+          gameState.elapsed+
+          phase
+        )%period;
+
+      block.active=
+        time<
+        visibleFor;
+
+      block.timeToToggle=
+        block.active
+          ?visibleFor-time
+          :period-time;
+    }
+
+    block.dx=
+      block.x-oldX;
+
+    block.dy=
+      block.y-oldY;
+  }
+
+  /*
+    Se o personagem estava sobre uma plataforma móvel,
+    ele acompanha o deslocamento dela.
+  */
+  for(
+    const player
+    of gameState.players
+  ){
+    if(
+      !player.groundBlockId
+    ){
+      continue;
+    }
+
+    const ground=
+      gameState.runtimeBlocks.find(
+        block=>
+          block.id===
+          player.groundBlockId
+      );
+
+    if(
+      !ground||
+      ground.active===false
+    ){
+      player.groundBlockId=null;
+      player.onGround=false;
+      continue;
+    }
+
+    player.x+=
+      ground.dx||0;
+
+    player.y+=
+      ground.dy||0;
+  }
+}
+
+function touchedDeathBlock(
+  player,
+  gameState
+){
+  for(
+    const hazard
+    of deathRuntimeBlocks(
+      gameState
+    )
+  ){
+    if(
+      overlap(
+        player,
+        hazard
+      )
+    ){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function simulatePlayer(
+  player,
+  input,
+  dt,
+  gameState
+){
+  let direction=0;
+
+  if(input.left)direction--;
+  if(input.right)direction++;
+
+  player.vx=
+    direction*
+    MOVE_SPEED;
+
+  if(
+    input.jump&&
+    player.onGround&&
+    !player.jumpLock
+  ){
+    player.vy=
+      -JUMP_SPEED;
+
+    player.onGround=false;
+    player.groundBlockId=null;
+    player.jumpLock=true;
+  }
+
+  if(!input.jump){
+    player.jumpLock=false;
+  }
+
+  player.vy+=
+    GRAVITY*
+    dt;
+
+  const solids=
+    solidRuntimeBlocks(
+      gameState
+    );
+
+  /*
+    Movimento horizontal.
+  */
+  player.x+=
+    player.vx*
+    dt;
+
+  for(
+    const block
+    of solids
+  ){
+    if(
+      overlap(
+        player,
+        block
+      )
+    ){
+      if(
+        player.vx>0
+      ){
+        player.x=
+          block.x-
+          player.w;
+      }else if(
+        player.vx<0
+      ){
+        player.x=
+          block.x+
+          block.w;
+      }
+    }
+  }
+
+  if(
+    touchedDeathBlock(
+      player,
+      gameState
+    )
+  ){
+    finishMatch(
+      "Fase perdida",
+      `O Jogador ${player.id} tocou em um bloco azul mortal.`
+    );
+
+    return;
+  }
+
+  /*
+    Movimento vertical.
+  */
+  player.onGround=false;
+  player.groundBlockId=null;
+
+  player.y+=
+    player.vy*
+    dt;
+
+  for(
+    const block
+    of solids
+  ){
+    if(
+      overlap(
+        player,
+        block
+      )
+    ){
+      if(
+        player.vy>0
+      ){
+        player.y=
+          block.y-
+          player.h;
+
+        player.vy=0;
+        player.onGround=true;
+        player.groundBlockId=
+          block.id;
+      }else if(
+        player.vy<0
+      ){
+        player.y=
+          block.y+
+          block.h;
+
+        player.vy=0;
+      }
+    }
+  }
+
+  if(
+    touchedDeathBlock(
+      player,
+      gameState
+    )
+  ){
+    finishMatch(
+      "Fase perdida",
+      `O Jogador ${player.id} tocou em um bloco azul mortal.`
+    );
+
+    return;
+  }
+
+  const margin=8;
+
+  if(
+    player.x<=margin||
+    player.x+player.w>=
+      WORLD.w-margin||
+    player.y<=margin||
+    player.y+player.h>=
+      WORLD.h-margin
+  ){
+    finishMatch(
+      "Fase perdida",
+      `O Jogador ${player.id} encostou na borda.`
+    );
+
+    return;
+  }
+
+  player.reached=
+    overlap(
+      player,
+      goal
+    );
+}
+
+function hostInput(){
+  return{
+    left:!!keys.KeyA||(gameMode==="offline"?offlineTouchInput1.left:touchInput.left),
+    right:!!keys.KeyD||(gameMode==="offline"?offlineTouchInput1.right:touchInput.right),
+    jump:!!keys.KeyW||(gameMode==="offline"?offlineTouchInput1.jump:touchInput.jump)
+  };
+}
+
+function clientInput(){
+  return{
+    left:!!keys.ArrowLeft||(gameMode==="offline"?offlineTouchInput2.left:touchInput.left),
+    right:!!keys.ArrowRight||(gameMode==="offline"?offlineTouchInput2.right:touchInput.right),
+    jump:!!keys.ArrowUp||(gameMode==="offline"?offlineTouchInput2.jump:touchInput.jump)
+  };
+}
+
+
+function neutralInput(){
+  return{
+    left:false,
+    right:false,
+    jump:false
+  };
+}
+
+function eliminateMultiplayerPlayer(player,reason){
+  if(!player||player.alive===false||state.finished){
+    return;
+  }
+
+  player.alive=false;
+  player.eliminatedReason=reason;
+  player.vx=0;
+  player.vy=0;
+  player.onGround=false;
+  player.groundBlockId=null;
+
+  if(player.playerId===PLAYER_ID){
+    $("gameMsg").textContent=
+      "Você foi eliminado. A partida continua enquanto houver alguém vivo.";
+  }
+
+  const alive=state.players.filter(
+    candidate=>candidate.alive!==false
+  );
+
+  if(alive.length===0){
+    finishMatch(
+      "Game over",
+      "Todos os jogadores foram eliminados.",
+      "gameover"
+    );
+  }
+}
+
+function simulateMultiplayerPlayer(
+  player,
+  input,
+  dt,
+  gameState
+){
+  if(player.alive===false||gameState.finished){
+    return;
+  }
+
+  let direction=0;
+  if(input.left)direction--;
+  if(input.right)direction++;
+
+  player.vx=direction*MOVE_SPEED;
+
+  if(input.jump&&player.onGround&&!player.jumpLock){
+    player.vy=-JUMP_SPEED;
+    player.onGround=false;
+    player.groundBlockId=null;
+    player.jumpLock=true;
+  }
+
+  if(!input.jump){
+    player.jumpLock=false;
+  }
+
+  player.vy+=GRAVITY*dt;
+
+  const solids=solidRuntimeBlocks(gameState);
+
+  player.x+=player.vx*dt;
+
+  for(const block of solids){
+    if(overlap(player,block)){
+      if(player.vx>0){
+        player.x=block.x-player.w;
+      }else if(player.vx<0){
+        player.x=block.x+block.w;
+      }
+    }
+  }
+
+  if(touchedDeathBlock(player,gameState)){
+    eliminateMultiplayerPlayer(
+      player,
+      "tocou em um bloco azul mortal"
+    );
+    return;
+  }
+
+  player.onGround=false;
+  player.groundBlockId=null;
+  player.y+=player.vy*dt;
+
+  for(const block of solids){
+    if(overlap(player,block)){
+      if(player.vy>0){
+        player.y=block.y-player.h;
+        player.vy=0;
+        player.onGround=true;
+        player.groundBlockId=block.id;
+      }else if(player.vy<0){
+        player.y=block.y+block.h;
+        player.vy=0;
+      }
+    }
+  }
+
+  if(touchedDeathBlock(player,gameState)){
+    eliminateMultiplayerPlayer(
+      player,
+      "tocou em um bloco azul mortal"
+    );
+    return;
+  }
+
+  const margin=8;
+
+  if(
+    player.x<=margin||
+    player.x+player.w>=WORLD.w-margin||
+    player.y<=margin||
+    player.y+player.h>=WORLD.h-margin
+  ){
+    eliminateMultiplayerPlayer(
+      player,
+      "encostou na borda do mundo"
+    );
+    return;
+  }
+
+  player.reached=overlap(player,goal);
+
+  if(player.reached){
+    finishMatch(
+      "Equipe venceu!",
+      `O Jogador ${(Number(player.slot)||0)+1} chegou à saída. Todos venceram.`,
+      "victory"
+    );
+  }
+}
+
+function hostUpdateMultiplayer(dt){
+  if(state.finished)return;
+
+  updateRuntimeBlocks(state,dt);
+
+  for(const player of state.players){
+    if(state.finished)break;
+
+    const input=
+      player.playerId===PLAYER_ID
+        ?hostInput()
+        :(remoteInputsByPlayer.get(player.playerId)||neutralInput());
+
+    simulateMultiplayerPlayer(
+      player,
+      input,
+      dt,
+      state
+    );
+  }
+}
+
+function hostUpdate(dt){
+  if(
+    gameMode==="online"&&
+    gameType==="course"&&
+    activeMatchRoster.length>=2
+  ){
+    hostUpdateMultiplayer(dt);
+    return;
+  }
+
+  if(state.finished)return;
+
+  updateRuntimeBlocks(state,dt);
+
+  simulatePlayer(
+    state.players[0],
+    hostInput(),
+    dt,
+    state
+  );
+
+  if(state.finished)return;
+
+  simulatePlayer(
+    state.players[1],
+    gameMode==="offline"?clientInput():remoteInput,
+    dt,
+    state
+  );
+
+  if(
+    state.players[0].reached&&
+    state.players[1].reached
+  ){
+    finishMatch(
+      "Vocês venceram!",
+      "Os dois jogadores chegaram à saída.",
+      "victory"
+    );
+  }
+}
+
+function setEndActions(mode){
+  const decision=$("generatedMapDecision");
+  const next=$("nextMapBtn");
+
+  decision.classList.add("hidden");
+  next.classList.add("hidden");
+
+  if(mode==="generated-win"){
+    decision.classList.remove("hidden");
+  }
+
+  if(mode==="next"){
+    next.classList.remove("hidden");
+  }
+}
+
+async function goToNextMap(){
+  if(gameMode==="offline"){
+    setEndActions("none");hideEnd();loadNextOfflineMap();return;
+  }
+  if(role!=="host")return;
+  setEndActions("none");hideEnd();await loadNextMapForPair();
+}
+
+function finishMatch(t,x,kind=null){
+  if(state.finished)return;
+
+  state.finished=true;
+  state.result={
+    title:t,
+    text:x,
+    kind:kind||null
+  };
+
+  setEndActions("none");
+
+  if(kind==="victory"||t==="Vocês venceram!"||t==="Equipe venceu!"){
+    mapWasCompleted=true;
+
+    if(
+      currentMap&&
+      currentMap.databaseId
+    ){
+      markMapPlayed(
+        currentMap.databaseId,
+        true
+      );
+    }
+
+    if((gameMode==="offline"||role==="host")&&currentMap){
+      if(gameMode==="offline"){
+        $("approveMapBtn").disabled=false;
+        $("rejectMapBtn").disabled=false;
+        $("mapLocalStatus").textContent="Mapa offline concluído. Avalie a fase.";
+        setEndActions("generated-win");
+      }else if(
+        currentMap.source!=="database"&&
+        !currentMap.databaseId
+      ){
+        $("approveMapBtn").disabled=false;
+        $("rejectMapBtn").disabled=false;
+
+        $("mapLocalStatus").textContent=
+          "Mapa concluído. Confirme se ele deve entrar na biblioteca.";
+
+        setEndActions("generated-win");
+      }else{
+        $("mapLocalStatus").textContent=
+          "✓ Mapa da biblioteca concluído.";
+
+        setEndActions("next");
+      }
+    }
+  }
+
+  showEnd(t,x);
+
+  sendGame({
+    type:"state",
+    state
+  });
+}
+
+function resetMatch(b=false){
+  if(
+    gameMode==="online"&&
+    gameType==="course"&&
+    activeMatchRoster.length>=2
+  ){
+    state=newOnlineMultiplayerState(activeMatchRoster);
+    remoteState=newOnlineMultiplayerState(activeMatchRoster);
+  }else{
+    state=newState();
+    remoteState=newState();
+  }
+
+  hideEnd();
+
+  if(b){
+    sendGame({type:"restart"});
+  }
+}
+
+function showEnd(t,x){
+  $("endTitle").textContent=t;
+  $("endText").textContent=x;
+  $("overlay").style.display="grid";
+}
+
+function hideEnd(){
+  $("overlay").style.display="none";
+}
+
+$("restartBtn").onclick=()=>{
+  if(gameType==="survival"){
+    if(gameMode==="offline"){
+      resetSurvival(false);
+    }else if(role==="host"){
+      resetSurvival(true);
+    }else{
+      sendGame({
+        type:"restart_request"
+      });
+    }
+
+    return;
+  }
+
+  if(gameMode==="offline"){
+    resetMatch(false);
+  }else if(role==="host"){
+    resetMatch(true);
+  }else{
+    sendGame({
+      type:"restart_request"
+    });
+  }
+};
+
+$("approveMapBtn").onclick=()=>{
+  saveApprovedMap();
+};
+
+$("rejectMapBtn").onclick=()=>{
+  rejectCurrentMap();
+};
+
+$("overlayApproveBtn").onclick=async()=>{
+  await saveApprovedMap();
+};
+
+$("overlayRejectBtn").onclick=async()=>{
+  await rejectCurrentMap();
+};
+
+$("nextMapBtn").onclick=async()=>{
+  await goToNextMap();
+};
+addEventListener("keydown",e=>{if(["ArrowUp","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();keys[e.code]=true;if(role==="client")sendClientInput()});addEventListener("keyup",e=>{keys[e.code]=false;if(role==="client")sendClientInput()});
+function bindTouch(id,k){const b=$(id),down=e=>{e.preventDefault();touchInput[k]=true;b.classList.add("active");try{b.setPointerCapture(e.pointerId)}catch{}if(role==="client")sendClientInput()},up=e=>{e.preventDefault();touchInput[k]=false;b.classList.remove("active");if(role==="client")sendClientInput()};b.addEventListener("pointerdown",down);b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up);b.addEventListener("lostpointercapture",up)}bindTouch("btnLeft","left");bindTouch("btnRight","right");bindTouch("btnJump","jump");function sendClientInput(){sendGame({type:"input",input:clientInput()})}
+
+function bindOfflineTouch(id,inputObject,key){const button=$(id),down=event=>{event.preventDefault();inputObject[key]=true;button.classList.add("active");try{button.setPointerCapture(event.pointerId)}catch{}},up=event=>{event.preventDefault();inputObject[key]=false;button.classList.remove("active")};button.addEventListener("pointerdown",down);button.addEventListener("pointerup",up);button.addEventListener("pointercancel",up);button.addEventListener("lostpointercapture",up);button.addEventListener("contextmenu",event=>event.preventDefault())}
+bindOfflineTouch("offlineP1Left",offlineTouchInput1,"left");bindOfflineTouch("offlineP1Right",offlineTouchInput1,"right");bindOfflineTouch("offlineP1Jump",offlineTouchInput1,"jump");bindOfflineTouch("offlineP2Left",offlineTouchInput2,"left");bindOfflineTouch("offlineP2Right",offlineTouchInput2,"right");bindOfflineTouch("offlineP2Jump",offlineTouchInput2,"jump");
+
+function resizeOneCanvas(target){const r=target.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);target.width=Math.max(1,Math.floor(r.width*d));target.height=Math.max(1,Math.floor(r.height*d))}function resizeCanvas(){resizeOneCanvas(canvas);resizeOneCanvas(offlineCanvasP1);resizeOneCanvas(offlineCanvasP2)}addEventListener("resize",resizeCanvas);
+function drawWorld(renderCtx,renderCanvas,drawState,viewer){
+  const useCamera=
+    gameType==="course"&&
+    WORLD.w>1400;
+
+  const viewportW=useCamera
+    ?1200
+    :WORLD.w;
+
+  const focusPlayer=(drawState.players||[]).find(
+    player=>
+      Number(player.slot)===Number(viewer)
+  )||
+  (drawState.players||[]).find(
+    player=>player.alive!==false
+  );
+
+  const focusX=
+    focusPlayer
+      ?focusPlayer.x+focusPlayer.w/2
+      :viewportW/2;
+
+  const cameraX=useCamera
+    ?clamp(
+        focusX-viewportW*0.42,
+        0,
+        Math.max(0,WORLD.w-viewportW)
+      )
+    :0;
+
+  const scale=Math.min(
+    renderCanvas.width/viewportW,
+    renderCanvas.height/WORLD.h
+  );
+
+  const ox=(renderCanvas.width-viewportW*scale)/2;
+  const oy=(renderCanvas.height-WORLD.h*scale)/2;
+
+  renderCtx.clearRect(0,0,renderCanvas.width,renderCanvas.height);
+  renderCtx.save();
+  renderCtx.translate(
+    ox-cameraX*scale,
+    oy
+  );
+  renderCtx.scale(scale,scale);
+
+  renderCtx.fillStyle="#161e2b";
+  renderCtx.fillRect(0,0,WORLD.w,WORLD.h);
+
+  renderCtx.strokeStyle="rgba(255,255,255,.035)";
+  for(let x=0;x<=WORLD.w;x+=50){
+    renderCtx.beginPath();
+    renderCtx.moveTo(x,0);
+    renderCtx.lineTo(x,WORLD.h);
+    renderCtx.stroke();
+  }
+  for(let y=0;y<=WORLD.h;y+=50){
+    renderCtx.beginPath();
+    renderCtx.moveTo(0,y);
+    renderCtx.lineTo(WORLD.w,y);
+    renderCtx.stroke();
+  }
+
+  renderCtx.strokeStyle="#fff";
+  renderCtx.lineWidth=10;
+  renderCtx.strokeRect(5,5,WORLD.w-10,WORLD.h-10);
+
+  renderCtx.strokeStyle="rgba(255,80,90,.5)";
+  renderCtx.lineWidth=2;
+  renderCtx.setLineDash([14,10]);
+  renderCtx.strokeRect(18,18,WORLD.w-36,WORLD.h-36);
+  renderCtx.setLineDash([]);
+
+  renderCtx.fillStyle="rgba(85,220,136,.22)";
+  renderCtx.fillRect(goal.x,goal.y,goal.w,goal.h);
+  renderCtx.strokeStyle="#55dc88";
+  renderCtx.lineWidth=4;
+  renderCtx.strokeRect(goal.x,goal.y,goal.w,goal.h);
+  renderCtx.fillStyle="#a3f0bf";
+  renderCtx.font="bold 18px Arial";
+  renderCtx.fillText("SAÍDA",goal.x+6,goal.y-10);
+
+  if(useCamera){
+    const progressWidth=220;
+    const progressX=cameraX+18;
+    const progressY=62;
+    const progress=clamp(
+      focusX/Math.max(1,WORLD.w),
+      0,
+      1
+    );
+
+    renderCtx.fillStyle="rgba(0,0,0,.48)";
+    renderCtx.fillRect(
+      progressX,
+      progressY,
+      progressWidth,
+      12
+    );
+
+    renderCtx.fillStyle="#55dc88";
+    renderCtx.fillRect(
+      progressX,
+      progressY,
+      progressWidth*progress,
+      12
+    );
+  }
+
+  const renderBlocks=Array.isArray(drawState.runtimeBlocks)
+    ?drawState.runtimeBlocks
+    :blocks;
+
+  const multiplayerVision=
+    gameMode==="online"&&
+    gameType==="course"&&
+    activeMatchRoster.length>=2;
+
+  for(const block of renderBlocks){
+    if(block.active===false)continue;
+
+    if(block.kind==="death"||block.type==="blue"){
+      renderCtx.fillStyle="#3995ff";
+      renderCtx.fillRect(block.x,block.y,block.w,block.h);
+      renderCtx.strokeStyle="#a9d2ff";
+      renderCtx.lineWidth=3;
+      renderCtx.strokeRect(block.x,block.y,block.w,block.h);
+      renderCtx.fillStyle="#e7f4ff";
+      renderCtx.font="bold 13px Arial";
+      renderCtx.fillText("✕",block.x+block.w/2-4,block.y+block.h-3);
+      continue;
+    }
+
+    let visible;
+    let fill;
+    let stroke;
+
+    if(multiplayerVision){
+      visible=
+        block.visibleToAll===true||
+        block.visibleSlots?.includes(Number(viewer));
+
+      fill=block.displayColor||"#9aa6b8";
+      stroke=block.displayStroke||"#dce3ec";
+    }else{
+      visible=
+        (viewer===1&&block.type==="yellow")||
+        (viewer===2&&block.type==="red");
+
+      fill=block.kind==="obstacle"
+        ?(block.type==="yellow"?"#d8a92c":"#be3e49")
+        :(block.type==="yellow"?"#f2ca3c":"#e8515e");
+
+      stroke=block.type==="yellow"?"#fff0a0":"#ff9aa4";
+    }
+
+    if(!visible)continue;
+
+    renderCtx.fillStyle=fill;
+    renderCtx.fillRect(block.x,block.y,block.w,block.h);
+    renderCtx.strokeStyle=stroke;
+    renderCtx.lineWidth=3;
+
+    if(block.behavior?.type==="blink"){
+      renderCtx.setLineDash([8,6]);
+    }
+
+    renderCtx.strokeRect(block.x,block.y,block.w,block.h);
+    renderCtx.setLineDash([]);
+
+    if(block.behavior?.type==="moving"){
+      renderCtx.fillStyle="rgba(0,0,0,.55)";
+      renderCtx.font="bold 14px Arial";
+      renderCtx.fillText(
+        block.behavior.axis==="y"?"↕":"↔",
+        block.x+block.w/2-7,
+        block.y+17
+      );
+    }
+  }
+
+  for(const player of drawState.players||[]){
+    const onlineDynamic=multiplayerVision&&player.slot!==undefined;
+    const color=onlineDynamic
+      ?playerColorForSlot(player.slot)
+      :(player.id===1?"#ffd84a":"#ff5b68");
+
+    renderCtx.save();
+
+    if(player.alive===false){
+      renderCtx.globalAlpha=.30;
+    }
+
+    renderCtx.fillStyle=color;
+    renderCtx.fillRect(player.x,player.y,player.w,player.h);
+
+    renderCtx.fillStyle="#10131b";
+    renderCtx.fillRect(player.x+6,player.y+10,5,5);
+    renderCtx.fillRect(player.x+Math.max(18,player.w-11),player.y+10,5,5);
+
+    renderCtx.fillStyle="#fff";
+    renderCtx.font="bold 13px Arial";
+
+    const label=onlineDynamic
+      ?`P${(Number(player.slot)||0)+1}`
+      :`P${player.id}`;
+
+    renderCtx.fillText(label,player.x+4,player.y-8);
+
+    if(player.alive===false){
+      renderCtx.fillText("☠",player.x+player.w/2-6,player.y+player.h/2+5);
+    }
+
+    if(player.reached){
+      renderCtx.strokeStyle="#55dc88";
+      renderCtx.lineWidth=4;
+      renderCtx.strokeRect(
+        player.x-4,
+        player.y-4,
+        player.w+8,
+        player.h+8
+      );
+    }
+
+    renderCtx.restore();
+  }
+
+  renderCtx.restore();
+}
+
+function draw(){
+  if(
+    !$("game")
+      .classList
+      .contains("active")
+  ){
+    return;
+  }
+
+  if(gameType==="survival"){
+    drawSurvival();
+    return;
+  }
+
+  if(gameMode==="offline"){
+    drawWorld(
+      offlineCtxP1,
+      offlineCanvasP1,
+      state,
+      1
+    );
+
+    drawWorld(
+      offlineCtxP2,
+      offlineCanvasP2,
+      state,
+      2
+    );
+
+    return;
+  }
+
+  const drawState=
+    role==="host"
+      ?state
+      :remoteState;
+
+  const viewer=
+    gameMode==="online"&&activeMatchRoster.length>=2
+      ?Number(myRoomSlot??0)
+      :(role==="host"?1:2);
+
+  drawWorld(
+    ctx,
+    canvas,
+    drawState,
+    viewer
+  );
+}
+function loop(now){
+  const dt=
+    Math.min(
+      (now-lastTime)/1000,
+      .033
+    );
+
+  lastTime=now;
+
+  if(
+    $("game")
+      .classList
+      .contains("active")
+  ){
+    if(gameType==="survival"){
+      if(gameMode==="offline"){
+        survivalHostUpdate(dt);
+      }else if(role==="host"){
+        survivalHostUpdate(dt);
+
+        accumulator+=dt;
+
+        if(
+          accumulator>=
+          1/SNAPSHOT_RATE
+        ){
+          accumulator=0;
+
+          sendGame({
+            type:"state",
+            state
+          });
+        }
+      }else{
+        accumulator+=dt;
+
+        if(
+          accumulator>=.05
+        ){
+          accumulator=0;
+          sendClientInput();
+        }
+      }
+    }else{
+      if(gameMode==="offline"){
+        hostUpdate(dt);
+      }else if(role==="host"){
+        hostUpdate(dt);
+
+        accumulator+=dt;
+
+        if(
+          accumulator>=
+          1/SNAPSHOT_RATE
+        ){
+          accumulator=0;
+
+          sendGame({
+            type:"state",
+            state
+          });
+        }
+      }else{
+        accumulator+=dt;
+
+        if(
+          accumulator>=.05
+        ){
+          accumulator=0;
+          sendClientInput();
+        }
+      }
+    }
+
+    draw();
+  }
+
+  requestAnimationFrame(loop);
+}setInterval(()=>{if(signal&&signal.readyState===WebSocket.OPEN)signal.send("ping")},25000);updateMapPanelForRole();
+updatePhaseCounter();
+refreshPlayerProgress();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
