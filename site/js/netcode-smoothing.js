@@ -978,22 +978,11 @@ const NetSmoothing=(()=>{
         ?"—"
         :`${Math.round(stats.pingMs)}ms`;
 
-    const soft=
-      role==="host"
-        ?stats.hostSoftAdjustments
-        :stats.softCorrections;
-
-    const hard=
-      role==="host"
-        ?stats.hostHardBlocks
-        :stats.hardCorrections;
-
     element.textContent=
-      ` · Ping ${ping} · Ajustes ${soft} · Bloqueios ${hard}`;
+      ` · Ping ${ping} · Movimento livre`;
 
     element.title=
-      stats.lastReason||
-      "Sem correções recentes";
+      "Anti-trapaça de movimento e reconciliação posicional desativados na V9.1.1.";
   }
 
   return Object.freeze({

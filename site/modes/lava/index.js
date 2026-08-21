@@ -768,12 +768,6 @@
       elapsed
     );
 
-    NetSmoothing.stepCorrection(
-      "lava-local",
-      L.runtime.localPlayer,
-      dt
-    );
-
     /*
       A morte local é apenas uma previsão visual.
       O Host ainda decide oficialmente.
@@ -894,8 +888,7 @@
 
     if(
       !player||
-      player.alive===
-      false||
+      player.alive===false||
       s.finished||
       !message?.player
     ){
@@ -912,27 +905,29 @@
       payload.vy
     ].map(Number);
 
-    const now=
-      performance.now();
-
-    const previous=
-      L.runtime.validation.get(
-        playerId
-      )||{
-        x:player.x,
-        y:player.y,
-        vx:player.vx,
-        vy:player.vy,
-        time:now-70,
-        seq:-1
-      };
+    if(
+      values.some(
+        value=>
+          !Number.isFinite(
+            value
+        )
+    )
+  ){
+      return false;
+    }
 
     const seq=
       Number(
         message.seq
       )||0;
 
+    const previous=
+      L.runtime.validation.get(
+        playerId
+      );
+
     if(
+      previous&&
       seq<=
       Number(
         previous.seq
@@ -941,74 +936,11 @@
       return false;
     }
 
-    const event=
-      L.currentEvent(
-        s.seed,
-        s.elapsed
-      );
-
-    const windAllowance=
-      event?.type===
-      "wind"
-        ?140
-        :0;
-
-    const verdict=
-      NetSmoothing.movementVerdict({
-        previous,
-        values,
-        seq,
-        now,
-        horizontalSpeed:
-          L.MOVE_SPEED+
-          windAllowance,
-        verticalSpeed:
-          L.JUMP_SPEED,
-        gravity:L.GRAVITY,
-        paddingX:220,
-        paddingY:250,
-        maxVx:
-          L.MOVE_SPEED+
-          300,
-        maxVy:1500,
-        hardDistanceX:980,
-        hardDistanceY:1150
-      });
-
-    if(
-      verdict.kind==="invalid"||
-      verdict.kind==="hard"
-    ){
-      NetSmoothing.noteHostVerdict(
-        verdict
-      );
-
-      ModeSystem
-        .context()
-        .sendMode(
-          {
-            type:"correction",
-            severity:"hard",
-            reason:
-              verdict.reason,
-            player:{
-              ...player
-            }
-          },
-          playerId
-        );
-
-      return false;
-    }
-
-    const accepted=
-      verdict.values||
-      values;
-
-    player.x=accepted[0];
-    player.y=accepted[1];
-    player.vx=accepted[2];
-    player.vy=accepted[3];
+    // V9.1.1: aceita o movimento informado pelo cliente.
+    player.x=values[0];
+    player.y=values[1];
+    player.vx=values[2];
+    player.vy=values[3];
     player.onGround=
       !!payload.onGround;
     player.jumpLock=
@@ -1030,35 +962,9 @@
     L.runtime.validation.set(
       playerId,
       {
-        x:player.x,
-        y:player.y,
-        vx:player.vx,
-        vy:player.vy,
-        time:now,
         seq
       }
     );
-
-    if(verdict.kind==="soft"){
-      NetSmoothing.noteHostVerdict(
-        verdict
-      );
-
-      ModeSystem
-        .context()
-        .sendMode(
-          {
-            type:"correction",
-            severity:"soft",
-            reason:
-              verdict.reason,
-            player:{
-              ...player
-            }
-          },
-          playerId
-        );
-    }
 
     L.ensureWorld(
       L.runtime.world,
@@ -1166,25 +1072,8 @@
         official.alive===
         false
       ){
-        L.runtime.localPlayer={
-          ...official
-        };
-
-        NetSmoothing.clearCorrection(
-          "lava-local"
-        );
+        previousLocal.alive=false;
       }else{
-        NetSmoothing.reconcileSnapshot(
-          "lava-local",
-          previousLocal,
-          official,
-          {
-            ignoreDistance:82,
-            mediumDistance:320,
-            hardDistance:860
-          }
-        );
-
         previousLocal.alive=true;
         previousLocal.maxY=
           Math.max(
@@ -1193,10 +1082,11 @@
             official.maxY||
             official.y
           );
-
-        L.runtime.localPlayer=
-          previousLocal;
       }
+
+      // Não copiar x/y/vx/vy do snapshot do Host.
+      L.runtime.localPlayer=
+        previousLocal;
     }else if(official){
       L.runtime.localPlayer={
         ...official
@@ -1409,32 +1299,9 @@
 
       if(
         message?.type===
-        "correction"&&
-        message.player
+        "correction"
       ){
-        if(
-          !L.runtime.localPlayer
-        ){
-          L.runtime.localPlayer={
-            ...message.player
-          };
-        }else{
-          NetSmoothing.receiveCorrection(
-            "lava-local",
-            L.runtime.localPlayer,
-            message.player,
-            {
-              severity:
-                message.severity||
-                "soft",
-              reason:
-                message.reason||
-                "ajuste do Host",
-              hardDistance:860
-            }
-          );
-        }
-
+        // Compatibilidade: correções antigas são ignoradas.
         return true;
       }
 

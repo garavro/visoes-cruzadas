@@ -753,45 +753,18 @@ function initializeLocalDistributedSurvivalPlayer(){
 }
 
 function applySurvivalAuthoritativeCorrection(
-  player,
-  severity="soft",
-  reason="ajuste do Host"
+  player
 ){
-  if(!player)return;
-
   if(
+    !player||
     !localDistributedSurvivalPlayer
   ){
-    localDistributedSurvivalPlayer={
-      ...player
-    };
-
     return;
   }
 
   if(player.alive===false){
-    Object.assign(
-      localDistributedSurvivalPlayer,
-      player
-    );
-
-    NetSmoothing.clearCorrection(
-      "survival-local"
-    );
-
-    return;
+    localDistributedSurvivalPlayer.alive=false;
   }
-
-  NetSmoothing.receiveCorrection(
-    "survival-local",
-    localDistributedSurvivalPlayer,
-    player,
-    {
-      severity,
-      reason,
-      hardDistance:800
-    }
-  );
 }
 
 function syncLocalSurvivalWithSnapshot(
@@ -811,31 +784,10 @@ function syncLocalSurvivalWithSnapshot(
         PLAYER_ID
     );
 
-  if(!official)return;
-
-  if(
-    official.alive===
-    false
-  ){
-    applySurvivalAuthoritativeCorrection(
-      official,
-      "hard",
-      "jogador eliminado"
-    );
-
-    return;
+  // Snapshot do Host não reposiciona o jogador local.
+  if(official?.alive===false){
+    localDistributedSurvivalPlayer.alive=false;
   }
-
-  NetSmoothing.reconcileSnapshot(
-    "survival-local",
-    localDistributedSurvivalPlayer,
-    official,
-    {
-      ignoreDistance:78,
-      mediumDistance:300,
-      hardDistance:800
-    }
-  );
 }
 
 function distributedSurvivalRenderState(){
@@ -1096,12 +1048,6 @@ function clientUpdateDistributedSurvival(
     remoteState
   );
 
-  NetSmoothing.stepCorrection(
-    "survival-local",
-    localDistributedSurvivalPlayer,
-    dt
-  );
-
   survivalDistributedSendAccumulator+=
     dt;
 
@@ -1279,103 +1225,42 @@ function validateDistributedSurvivalPlayerState(
     payload.vy
   ].map(Number);
 
-  const now=
-    performance.now();
+  if(
+    values.some(
+      value=>
+        !Number.isFinite(
+          value
+        )
+    )
+  ){
+    return false;
+  }
 
   const previous=
     survivalValidationByPlayer.get(
       playerId
-    )||{
-      x:player.x,
-      y:player.y,
-      vx:player.vx,
-      vy:player.vy,
-      time:now-70,
-      seq:-1
-    };
+    );
+
+  const numericSeq=
+    Number(seq);
 
   if(
-    Number(seq)<=
-    Number(previous.seq)
+    previous&&
+    Number.isFinite(
+      numericSeq
+    )&&
+    numericSeq<=
+    Number(
+      previous.seq
+    )
   ){
     return false;
   }
 
-  const hazardSpeed=
-    Math.max(
-      MOVE_SPEED,
-      ...(
-        state.hazards||
-        []
-      ).map(
-        hazard=>
-          Math.max(
-            Math.abs(
-              Number(hazard.vx)||0
-            ),
-            Math.abs(
-              Number(hazard.vy)||0
-            )
-          )
-      ),
-      0
-    );
-
-  const verdict=
-    NetSmoothing.movementVerdict({
-      previous,
-      values,
-      seq,
-      now,
-      horizontalSpeed:
-        Math.max(
-          MOVE_SPEED,
-          hazardSpeed
-        ),
-      verticalSpeed:
-        Math.max(
-          JUMP_SPEED,
-          hazardSpeed
-        ),
-      gravity:GRAVITY,
-      paddingX:205,
-      paddingY:245,
-      maxVx:
-        Math.max(
-          1050,
-          hazardSpeed*1.9
-        ),
-      maxVy:2100,
-      hardDistanceX:940,
-      hardDistanceY:1080
-    });
-
-  if(
-    verdict.kind==="invalid"||
-    verdict.kind==="hard"
-  ){
-    NetSmoothing.noteHostVerdict(
-      verdict
-    );
-
-    sendPlayerCorrection(
-      playerId,
-      player,
-      verdict.reason,
-      "hard"
-    );
-
-    return false;
-  }
-
-  const accepted=
-    verdict.values||
-    values;
-
-  player.x=accepted[0];
-  player.y=accepted[1];
-  player.vx=accepted[2];
-  player.vy=accepted[3];
+  player.x=values[0];
+  player.y=values[1];
+  player.vx=values[2];
+  player.vy=values[3];
   player.onGround=
     !!payload.onGround;
   player.jumpLock=
@@ -1384,28 +1269,14 @@ function validateDistributedSurvivalPlayerState(
   survivalValidationByPlayer.set(
     playerId,
     {
-      x:player.x,
-      y:player.y,
-      vx:player.vx,
-      vy:player.vy,
-      time:now,
       seq:
-        Number(seq)||0
+        Number.isFinite(
+          numericSeq
+        )
+          ?numericSeq
+          :0
     }
   );
-
-  if(verdict.kind==="soft"){
-    NetSmoothing.noteHostVerdict(
-      verdict
-    );
-
-    sendPlayerCorrection(
-      playerId,
-      player,
-      verdict.reason,
-      "soft"
-    );
-  }
 
   evaluateDistributedSurvivalPlayer(
     player
