@@ -321,6 +321,100 @@ async function handleWebSocketGameMessage(
     return;
   }
 
+  if(m.type==="state"){
+    if(
+      !m.state||
+      typeof m.state!=="object"
+    ){
+      return;
+    }
+
+    const previousRemoteState=
+      remoteState;
+
+    remoteState=
+      m.state;
+
+    /*
+      V9.1.2:
+      snapshots voltam a sincronizar apenas estados OFICIAIS
+      (morte, vitória, game over e relógio).
+      x/y/vx/vy do jogador local continuam livres.
+    */
+    if(gameType==="course"){
+      syncLocalPlayerWithWorldSnapshot(
+        previousRemoteState,
+        remoteState
+      );
+
+      const officialElapsed=
+        Number(
+          remoteState.elapsed
+        );
+
+      if(
+        Number.isFinite(
+          officialElapsed
+        )
+      ){
+        const drift=
+          Math.abs(
+            officialElapsed-
+            currentCourseClock()
+          );
+
+        if(drift>.20){
+          setCourseClockAnchor(
+            officialElapsed
+          );
+        }
+      }
+    }else if(
+      gameType==="survival"
+    ){
+      syncLocalSurvivalWithSnapshot(
+        remoteState
+      );
+
+      const officialElapsed=
+        Number(
+          remoteState.elapsed
+        );
+
+      if(
+        Number.isFinite(
+          officialElapsed
+        )
+      ){
+        const drift=
+          Math.abs(
+            officialElapsed-
+            currentSurvivalClock()
+          );
+
+        if(drift>.20){
+          setSurvivalClockAnchor(
+            officialElapsed
+          );
+        }
+      }
+    }
+
+    updateLocalSpectatorStatus();
+
+    if(
+      remoteState.finished&&
+      remoteState.result
+    ){
+      showEnd(
+        remoteState.result.title,
+        remoteState.result.text
+      );
+    }
+
+    return;
+  }
+
   if(m.type==="player-correction"){
     // V9.1.1: nenhuma correção de movimento é aplicada.
     return;

@@ -7,24 +7,82 @@ function drawWorld(renderCtx,renderCanvas,drawState,viewer){
     ?1200
     :WORLD.w;
 
-  const focusPlayer=(drawState.players||[]).find(
-    player=>
-      Number(player.slot)===Number(viewer)
-  )||
-  (drawState.players||[]).find(
-    player=>player.alive!==false
-  );
+  const onlineCourse=
+    gameMode==="online"&&
+    gameType==="course"&&
+    activeMatchRoster.length>=2;
 
-  const focusX=
+  const focusPlayer=
+    (drawState.players||[]).find(
+      player=>
+        Number(player.slot)===
+        Number(viewer)
+    )||
+    (drawState.players||[]).find(
+      player=>
+        player.alive!==false
+    );
+
+  let focusX=
     focusPlayer
-      ?focusPlayer.x+focusPlayer.w/2
+      ?focusPlayer.x+
+        focusPlayer.w/2
       :viewportW/2;
+
+  /*
+    Na visão do Host, quando a equipe ainda cabe confortavelmente na câmera,
+    centralizamos suavemente entre os jogadores vivos.
+  */
+  if(
+    useCamera&&
+    onlineCourse&&
+    role==="host"
+  ){
+    const alivePlayers=
+      (drawState.players||[])
+        .filter(
+          player=>
+            player.alive!==false
+        );
+
+    if(alivePlayers.length>=2){
+      const centers=
+        alivePlayers.map(
+          player=>
+            player.x+
+            player.w/2
+        );
+
+      const minX=
+        Math.min(
+          ...centers
+        );
+
+      const maxX=
+        Math.max(
+          ...centers
+        );
+
+      if(
+        maxX-minX<=
+        viewportW*.70
+      ){
+        focusX=
+          (minX+maxX)/2;
+      }
+    }
+  }
 
   const cameraX=useCamera
     ?clamp(
-        focusX-viewportW*0.42,
+        focusX-
+        viewportW*.42,
         0,
-        Math.max(0,WORLD.w-viewportW)
+        Math.max(
+          0,
+          WORLD.w-
+          viewportW
+        )
       )
     :0;
 
@@ -112,9 +170,7 @@ function drawWorld(renderCtx,renderCanvas,drawState,viewer){
     :blocks;
 
   const multiplayerVision=
-    gameMode==="online"&&
-    gameType==="course"&&
-    activeMatchRoster.length>=2;
+    onlineCourse;
 
   for(const block of renderBlocks){
     if(block.active===false)continue;
@@ -214,6 +270,130 @@ function drawWorld(renderCtx,renderCanvas,drawState,viewer){
     );
   }
 
+  /*
+    Se um convidado estiver fora da câmera do Host, mostramos um marcador
+    na borda. Assim ele não "desaparece" simplesmente em mapas longos.
+  */
+  if(
+    multiplayerVision&&
+    useCamera&&
+    role==="host"
+  ){
+    const left=
+      cameraX;
+
+    const right=
+      cameraX+
+      viewportW;
+
+    for(
+      const player
+      of drawState.players||
+      []
+    ){
+      if(
+        player.alive===false||
+        player.playerId===
+        PLAYER_ID
+      ){
+        continue;
+      }
+
+      const centerX=
+        player.x+
+        player.w/2;
+
+      if(
+        centerX>=left+20&&
+        centerX<=right-20
+      ){
+        continue;
+      }
+
+      const slot=
+        Number(
+          player.slot
+        )||0;
+
+      const markerX=
+        centerX<left
+          ?left+24
+          :right-24;
+
+      const markerY=
+        clamp(
+          player.y+
+          player.h/2,
+          55,
+          WORLD.h-45
+        );
+
+      renderCtx.save();
+
+      renderCtx.fillStyle=
+        playerColorForSlot(
+          slot
+        );
+
+      renderCtx.strokeStyle=
+        playerStrokeForSlot(
+          slot
+        );
+
+      renderCtx.lineWidth=3;
+      renderCtx.beginPath();
+
+      if(centerX<left){
+        renderCtx.moveTo(
+          markerX-12,
+          markerY
+        );
+        renderCtx.lineTo(
+          markerX+8,
+          markerY-12
+        );
+        renderCtx.lineTo(
+          markerX+8,
+          markerY+12
+        );
+      }else{
+        renderCtx.moveTo(
+          markerX+12,
+          markerY
+        );
+        renderCtx.lineTo(
+          markerX-8,
+          markerY-12
+        );
+        renderCtx.lineTo(
+          markerX-8,
+          markerY+12
+        );
+      }
+
+      renderCtx.closePath();
+      renderCtx.fill();
+      renderCtx.stroke();
+
+      renderCtx.fillStyle=
+        "#ffffff";
+
+      renderCtx.font=
+        "bold 13px Arial";
+
+      renderCtx.textAlign=
+        "center";
+
+      renderCtx.fillText(
+        `P${slot+1}`,
+        markerX,
+        markerY-17
+      );
+
+      renderCtx.restore();
+    }
+  }
+
   renderCtx.restore();
 }
 
@@ -270,7 +450,7 @@ function draw(){
 
   const drawState=
     role==="host"
-      ?state
+      ?distributedHostRenderState()
       :distributedClientRenderState();
 
   const viewer=

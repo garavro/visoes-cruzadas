@@ -1,3 +1,5 @@
+let courseHostRenderStateRef=null;
+
 function setCourseClockAnchor(elapsed=0){
   courseClockAnchorElapsed=Math.max(0,Number(elapsed)||0);
   courseClockAnchorPerf=performance.now();
@@ -281,6 +283,71 @@ function distributedClientRenderState(){
   };
 }
 
+function distributedHostRenderState(){
+  if(!state){
+    return state;
+  }
+
+  if(
+    courseHostRenderStateRef!==
+    state
+  ){
+    courseHostRenderStateRef=
+      state;
+
+    NetSmoothing.clearScope(
+      "course-host"
+    );
+  }
+
+  return{
+    ...state,
+    players:
+      NetSmoothing.smoothRemotePlayers(
+        "course-host",
+        state.players||
+        [],
+        PLAYER_ID
+      )
+  };
+}
+
+function distributedCourseLocalDeathReason(
+  player,
+  gameState
+){
+  if(
+    !player||
+    player.alive===false
+  ){
+    return null;
+  }
+
+  if(
+    touchedDeathBlock(
+      player,
+      gameState
+    )
+  ){
+    return "tocou em um bloco azul mortal";
+  }
+
+  const margin=8;
+
+  if(
+    player.x<=margin||
+    player.x+player.w>=
+      WORLD.w-margin||
+    player.y<=margin||
+    player.y+player.h>=
+      WORLD.h-margin
+  ){
+    return "encostou na borda do mundo";
+  }
+
+  return null;
+}
+
 function simulateDistributedCourseLocalPlayer(
   player,
   input,
@@ -405,9 +472,42 @@ function clientUpdateDistributedCourse(dt){
     remoteState
   );
 
+  const localDeathReason=
+    distributedCourseLocalDeathReason(
+      localDistributedPlayer,
+      remoteState
+    );
+
+  if(localDeathReason){
+    /*
+      Enviamos a posição final ao Host antes de congelar localmente.
+      WebSocket é confiável e o Host continua oficializando a morte.
+    */
+    sendDistributedPlayerState();
+
+    localDistributedPlayer.alive=
+      false;
+
+    localDistributedPlayer.eliminatedReason=
+      localDeathReason;
+
+    localDistributedPlayer.vx=0;
+    localDistributedPlayer.vy=0;
+    localDistributedPlayer.onGround=false;
+    localDistributedPlayer.groundBlockId=null;
+
+    $("gameMsg").textContent=
+      "Você foi eliminado. Modo espectador: continue ajudando a equipe com a sua visão.";
+
+    return;
+  }
+
   distributedSendAccumulator+=dt;
 
-  if(distributedSendAccumulator>=.05){
+  if(
+    distributedSendAccumulator>=
+    1/30
+  ){
     distributedSendAccumulator=0;
     sendDistributedPlayerState();
   }

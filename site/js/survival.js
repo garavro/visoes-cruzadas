@@ -1,3 +1,5 @@
+let survivalHostRenderStateRef=null;
+
 function updateLocalSpectatorStatus(){
   if(gameMode!=="online")return;
 
@@ -823,6 +825,35 @@ function distributedSurvivalRenderState(){
   };
 }
 
+function distributedSurvivalHostRenderState(){
+  if(!state){
+    return state;
+  }
+
+  if(
+    survivalHostRenderStateRef!==
+    state
+  ){
+    survivalHostRenderStateRef=
+      state;
+
+    NetSmoothing.clearScope(
+      "survival-host"
+    );
+  }
+
+  return{
+    ...state,
+    players:
+      NetSmoothing.smoothRemotePlayers(
+        "survival-host",
+        state.players||
+        [],
+        PLAYER_ID
+      )
+  };
+}
+
 function simulateDistributedSurvivalLocalPlayer(
   player,
   input,
@@ -1053,7 +1084,7 @@ function clientUpdateDistributedSurvival(
 
   if(
     survivalDistributedSendAccumulator>=
-    .05
+    1/30
   ){
     survivalDistributedSendAccumulator=0;
 
@@ -2255,7 +2286,8 @@ function drawSurvival(){
       0
     );
 
-    drawState=state;
+    drawState=
+      distributedSurvivalHostRenderState();
   }else{
     syncDeterministicSurvivalHazards(
       remoteState,

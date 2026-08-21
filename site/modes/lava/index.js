@@ -56,10 +56,26 @@
 
     renderState(){
       if(
-        gameMode!=="online"||
-        role==="host"
+        gameMode!=="online"
       ){
         return this.state;
+      }
+
+      if(role==="host"){
+        if(!this.state){
+          return this.state;
+        }
+
+        return{
+          ...this.state,
+          players:
+            NetSmoothing.smoothRemotePlayers(
+              "lava-host",
+              this.state.players||
+              [],
+              PLAYER_ID
+            )
+        };
       }
 
       if(
@@ -347,6 +363,10 @@
 
     NetSmoothing.clearScope(
       "lava"
+    );
+
+    NetSmoothing.clearScope(
+      "lava-host"
     );
 
     L.runtime.seq=0;
@@ -789,7 +809,7 @@
 
     if(
       L.runtime.sendAccumulator>=
-      .05
+      1/30
     ){
       L.runtime.sendAccumulator=0;
       L.runtime.seq++;
