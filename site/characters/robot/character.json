@@ -1,0 +1,11 @@
+{
+  "id": "robot",
+  "name": "Robô",
+  "description": "Robô mecânico com antena e passos articulados.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "./renderer.js",
+  "enabled": true,
+  "order": 20,
+  "type": "procedural"
+}

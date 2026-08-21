@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "modes": [
+    {
+      "id": "course",
+      "manifest": "./course/mode.json"
+    },
+    {
+      "id": "survival",
+      "manifest": "./survival/mode.json"
+    },
+    {
+      "id": "lava",
+      "manifest": "./lava/mode.json"
+    }
+  ]
+}

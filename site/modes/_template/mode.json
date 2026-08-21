@@ -1,0 +1,16 @@
+{
+  "id": "meu-modo",
+  "name": "Meu Novo Modo",
+  "description": "Copie esta pasta, altere o ID e implemente os hooks.",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "entry": "./index.js",
+  "enabled": false,
+  "online": true,
+  "offline": false,
+  "minPlayers": 2,
+  "maxPlayers": null,
+  "order": 100,
+  "accent": "secondary",
+  "bodyClass": ""
+}

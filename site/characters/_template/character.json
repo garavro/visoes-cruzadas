@@ -1,0 +1,11 @@
+{
+  "id": "meu-personagem",
+  "name": "Meu Personagem",
+  "description": "Copie esta pasta e desenhe o personagem com Canvas.",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "entry": "./renderer.js",
+  "enabled": false,
+  "order": 100,
+  "type": "procedural"
+}

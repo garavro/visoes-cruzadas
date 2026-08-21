@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "characters": [
+    {
+      "id": "classic",
+      "manifest": "./classic/character.json"
+    },
+    {
+      "id": "robot",
+      "manifest": "./robot/character.json"
+    },
+    {
+      "id": "ninja",
+      "manifest": "./ninja/character.json"
+    },
+    {
+      "id": "alien",
+      "manifest": "./alien/character.json"
+    }
+  ]
+}

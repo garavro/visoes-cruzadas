@@ -1,0 +1,11 @@
+{
+  "id": "ninja",
+  "name": "Ninja",
+  "description": "Ninja procedural com máscara e faixa animada.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "./renderer.js",
+  "enabled": true,
+  "order": 30,
+  "type": "procedural"
+}

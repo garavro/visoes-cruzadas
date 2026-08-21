@@ -1,0 +1,25 @@
+{
+  "id": "lava",
+  "name": "LAVA",
+  "description": "Suba infinitamente enquanto a lava acelera abaixo da equipe.",
+  "version": "0.3.0",
+  "apiVersion": 1,
+  "entry": "./index.js",
+  "scripts": [
+    "./generator.js",
+    "./physics.js",
+    "./renderer.js",
+    "./index.js"
+  ],
+  "styles": [
+    "./style.css"
+  ],
+  "enabled": true,
+  "online": true,
+  "offline": true,
+  "minPlayers": 2,
+  "maxPlayers": null,
+  "order": 30,
+  "accent": "red",
+  "bodyClass": "lava-mode"
+}

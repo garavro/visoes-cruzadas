@@ -1,0 +1,11 @@
+{
+  "id": "alien",
+  "name": "Alien",
+  "description": "Alien de olhos grandes e movimentos elásticos.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "./renderer.js",
+  "enabled": true,
+  "order": 40,
+  "type": "procedural"
+}

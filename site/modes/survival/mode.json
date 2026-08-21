@@ -1,0 +1,16 @@
+{
+  "id": "survival",
+  "name": "Modo 2 — Sobrevivência",
+  "description": "Sobreviva aos obstáculos enquanto pelo menos um jogador estiver vivo.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "./index.js",
+  "enabled": true,
+  "online": true,
+  "offline": true,
+  "minPlayers": 2,
+  "maxPlayers": null,
+  "order": 20,
+  "accent": "red",
+  "bodyClass": "survival-mode"
+}

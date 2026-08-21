@@ -1,0 +1,11 @@
+{
+  "id": "classic",
+  "name": "Clássico",
+  "description": "O personagem original, agora com braços, pernas e animações.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "./renderer.js",
+  "enabled": true,
+  "order": 10,
+  "type": "procedural"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "course",
+  "name": "Modo 1 — Percurso",
+  "description": "Percurso procedural cooperativo com visão por cores.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "./index.js",
+  "enabled": true,
+  "online": true,
+  "offline": true,
+  "minPlayers": 2,
+  "maxPlayers": null,
+  "order": 10,
+  "accent": "yellow",
+  "bodyClass": ""
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Visões Cruzadas Online</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+<section id="menu" class="screen active"><div class="card"><h1>VISÕES CRUZADAS</h1><p class="muted">Escolha entre multiplayer online ou Couch Co-op no mesmo dispositivo.</p>
+<div id="home">
+
+<div id="characterSelection" class="box characterSelectionBox">
+  <div class="characterSelectionHeader">
+    <div>
+      <h2>Personagem</h2>
+      <p class="muted">
+        A aparência é independente da cor do jogador. Todos continuam com a mesma física e hitbox.
+      </p>
+    </div>
+    <div class="characterCurrent">
+      Atual/P1: <b id="currentCharacterName">Carregando...</b>
+    </div>
+  </div>
+
+  <div id="characterCards" class="characterGrid">
+    <div class="muted">Carregando personagens...</div>
+  </div>
+
+  <details id="offlineP2CharacterSelector" class="offlineCharacterDetails">
+    <summary>
+      Personagem do Jogador 2 no Couch Co-op:
+      <b id="currentCharacterNameP2">Carregando...</b>
+    </summary>
+    <div id="characterCardsP2" class="characterGrid"></div>
+  </details>
+</div>
+
+<div class="grid2">
+  <div class="box">
+    <h2 style="color:var(--yellow)">Online — Criar partida</h2>
+    <p>O Host escolhe o modo e compartilha o código da sala.</p>
+    <div id="onlineModeButtons" class="modePluginList">
+      <button disabled style="width:100%">Carregando modos...</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2 style="color:var(--red)">Online — Entrar</h2>
+    <p>O modo da partida é definido automaticamente pelo Host.</p>
+    <input id="roomInput" maxlength="8" placeholder="ABC123">
+    <button id="joinRoom" class="red" style="width:100%;margin-top:10px">Entrar na sala</button>
+  </div>
+</div>
+
+<div id="offlineHint">
+  <h2 style="margin-bottom:6px;color:#9fc6ff">Couch Co-op / Offline</h2>
+  <p class="muted" style="margin:4px 0 10px">
+    Dois jogadores no mesmo dispositivo, com tela dividida e sem internet.
+  </p>
+  <p class="muted" style="font-size:12px">
+    P1: A / D / W &nbsp; • &nbsp; P2: ← / → / ↑
+  </p>
+  <div id="offlineModeButtons" class="modePluginList modePluginListInline">
+    <button disabled class="secondary">Carregando modos...</button>
+  </div>
+</div>
+
+<div id="menuStatus" class="status">
+  Carregando modos instalados...
+</div>
+</div>
+<div id="lobby" class="hidden">
+  <div class="box">
+    <h2 id="lobbyTitle">Sala multiplayer</h2>
+    <div id="roomCode" class="roomCode"></div>
+    <p id="lobbyMessage" class="muted" style="text-align:center"></p>
+
+    <div id="multiplayerLobbyInfo">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <b>Jogadores conectados</b>
+        <span id="playerCountBadge">0</span>
+      </div>
+      <div id="playerList"></div>
+      <div id="multiplayerStageNotice" class="muted">
+        V9.0: modos e personagens são carregados como plugins independentes.
+      </div>
+    </div>
+
+    <div class="row" style="justify-content:center;margin-top:14px">
+      <button id="startLobbyGame" class="yellow hidden" disabled>Iniciar partida</button>
+      <button id="copyRoom" class="secondary">Copiar código</button>
+      <button id="leaveLobby" class="secondary">Sair</button>
+    </div>
+  </div>
+</div>
+</div></section>
+<section id="game" class="screen"><div id="hud"><div id="leftHud"><b id="roleText"></b><br><span class="muted" id="controlText"></span></div><div id="centerHud">
+  <b id="gameTitle">VISÕES CRUZADAS — PROCEDURAL</b><br>
+  <span id="gameSubtitle" class="muted">Rotas agora podem usar movimento, plataformas temporárias, obstáculos, blocos azuis e zigue-zague.</span><br>
+  <b id="survivalTimer" class="hidden">Tempo: 00:00.0</b>
+</div><div id="rightHud">
+  <span id="netText">Conectado</span><br>
+  <span id="transportText" class="muted">WebSocket · Física distribuída</span><br>
+  <b id="phaseCounter">Fases jogadas: 0</b>
+</div></div><div id="gameArea"><canvas id="canvas"></canvas><div id="offlineViews" class="hidden"><div class="offlineView"><canvas id="offlineCanvasP1"></canvas><div class="offlineLabel p1">JOGADOR 1 — VISÃO AMARELA</div><div class="offlineTouchControls"><div class="offlineTouchGroup"><button class="offlineTouchBtn" id="offlineP1Left">◀</button><button class="offlineTouchBtn" id="offlineP1Right">▶</button></div><div class="offlineTouchGroup"><button class="offlineTouchBtn jump" id="offlineP1Jump">PULAR</button></div></div></div><div class="offlineView"><canvas id="offlineCanvasP2"></canvas><div class="offlineLabel p2">JOGADOR 2 — VISÃO VERMELHA</div><div class="offlineTouchControls"><div class="offlineTouchGroup"><button class="offlineTouchBtn" id="offlineP2Left">◀</button><button class="offlineTouchBtn" id="offlineP2Right">▶</button></div><div class="offlineTouchGroup"><button class="offlineTouchBtn jump" id="offlineP2Jump">PULAR</button></div></div></div></div><div id="gameMsg"></div>
+<div id="survivalLegend">
+  Obstáculos normais usam a cor de um jogador e só ele os enxerga · azuis são visíveis a todos.<br>
+  Cair, tocar o teto, tocar no azul ou ser esmagado elimina o jogador; a rodada termina quando todos morrerem.
+</div>
+<div id="mapPanel">
+  <div><b>MAPA PROCEDURAL</b></div>
+  <div>Seed: <span id="mapSeed" class="seed">---</span></div>
+  <div>Origem: <span id="mapSource" class="seed">---</span></div>
+  <div>Jogadores alvo: <span id="mapTargetPlayers" class="seed">---</span></div>
+  <div>Mundo: <span id="mapWorldSize" class="seed">---</span></div>
+  <div>Plataformas: <span id="mapPlatformCount" class="seed">---</span></div>
+  <div>Recursos: <span id="mapFeatures" class="seed">---</span></div>
+  <div>Validação automática: <span id="autoValidation">---</span></div>
+  <div id="mapLocalStatus" class="muted">Mapa ainda não avaliado.</div>
+  <div class="actions">
+    <button id="approveMapBtn" disabled>✓ POSSÍVEL</button>
+    <button id="rejectMapBtn">✕ IMPOSSÍVEL</button>
+  </div>
+</div><div id="touchControls"><div class="touchGroup"><button class="touchBtn" id="btnLeft">◀</button><button class="touchBtn" id="btnRight">▶</button></div><div class="touchGroup"><button class="touchBtn jump" id="btnJump">PULAR</button></div></div><div id="overlay"><div class="card"><h2 id="endTitle"></h2><p id="endText"></p>
+<div id="generatedMapDecision" class="row hidden" style="justify-content:center;margin-bottom:10px">
+  <button id="overlayApproveBtn" style="background:#55dc88;color:#08130d">✓ POSSÍVEL</button>
+  <button id="overlayRejectBtn" class="red">✕ IMPOSSÍVEL</button>
+</div>
+<div class="row" style="justify-content:center">
+  <button id="nextMapBtn" class="yellow hidden">Próximo mapa</button>
+  <button id="restartBtn">Reiniciar</button>
+  <button id="menuBtn" class="secondary">Menu</button>
+</div></div></div></div></section>
+<script src="./js/core.js"></script>
+<script src="./js/character-system.js"></script>
+<script src="./js/mode-system.js"></script>
+<script src="./js/course-maps.js"></script>
+<script src="./js/state.js"></script>
+<script src="./js/survival.js"></script>
+<script src="./js/lobby-network.js"></script>
+<script src="./js/course-distributed.js"></script>
+<script src="./js/transport.js"></script>
+<script src="./js/gameplay.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/bootstrap.js"></script>
+</body>
+</html>

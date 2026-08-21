@@ -1,26 +1,107 @@
-# Visões Cruzadas
+# Visões Cruzadas — V9.0 Character Plugin System
 
-Jogo cooperativo multiplayer em HTML.
+A V9.0 adiciona personagens procedurais, animados e extensíveis sem PNG.
+
+## Personagens incluídos
+
+- Clássico
+- Robô
+- Ninja
+- Alien
+
+Todos usam a cor do slot do jogador.
+
+## Animações
+
+O Character System identifica automaticamente:
+
+- `idle`
+- `walk`
+- `jump`
+- `fall`
+- `death`
+
+As animações são desenhadas matematicamente no Canvas.
+
+## Funciona em todos os modos
+
+- Percurso
+- Sobrevivência
+- LAVA
+- futuros modos que chamem `CharacterSystem.drawPlayer(...)`
+
+## Couch Co-op
+
+O menu possui escolha separada:
+
+- personagem do jogador principal/P1;
+- personagem do P2 offline.
+
+## Multiplayer
+
+A escolha é sincronizada no lobby e incluída em `activeMatchRoster`.
+
+Não é necessário enviar o personagem a cada snapshot.
+
+## Estrutura
+
+```text
+site/
+├── characters/
+│   ├── registry.json
+│   ├── classic/
+│   ├── robot/
+│   ├── ninja/
+│   ├── alien/
+│   └── _template/
+│
+└── js/
+    └── character-system.js
+```
+
+## Criar personagem novo
+
+```bash
+cp -r site/characters/_template site/characters/dragao
+```
+
+Depois edite:
+
+```text
+site/characters/dragao/character.json
+site/characters/dragao/renderer.js
+```
+
+Execute:
+
+```bash
+node tools/build-character-registry.mjs
+node tools/validate-characters.mjs
+```
+
+## Testar
+
+```bash
+node tools/build-character-registry.mjs
+node tools/validate-characters.mjs
+node tools/build-mode-registry.mjs
+node tools/validate-modes.mjs
+cd site
+python3 -m http.server 8080
+```
 
 ## GitHub Pages
 
-O frontend é estático e pode ser publicado diretamente com GitHub Pages.
+O workflow agora gera tanto:
 
-1. Crie um repositório vazio.
-2. Envie estes arquivos para a branch `main`.
-3. Abra `Settings` → `Pages`.
-4. Em `Source`, escolha `Deploy from a branch`.
-5. Escolha `main` e `/(root)`.
-6. Salve.
-
-O backend multiplayer continua hospedado separadamente no Cloudflare Worker.
-
-## Segurança
-
-Antes de cada publicação execute:
-
-```bash
-bash pre-publish-check.sh
+```text
+modes/registry.json
+characters/registry.json
 ```
 
-Não armazene tokens, senhas ou chaves de API no `index.html` ou no GitHub.
+antes do deploy.
+
+## Cloudflare / D1
+
+A V9.0 não exige migration e não exige atualização do Worker. A sincronização
+da escolha usa o `game-relay` já existente.

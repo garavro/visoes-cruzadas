@@ -1,0 +1,85 @@
+body.lava-mode #mapPanel,
+body.lava-mode #survivalLegend{
+  display:none!important;
+}
+
+body.lava-mode #gameMsg{
+  top:8px;
+}
+
+#lavaHud{
+  position:absolute;
+  left:12px;
+  top:12px;
+  z-index:8;
+  min-width:190px;
+  padding:9px 11px;
+  border-radius:11px;
+  background:rgba(5,8,18,.72);
+  border:1px solid rgba(255,126,74,.38);
+  font-size:12px;
+  line-height:1.45;
+  pointer-events:none;
+  backdrop-filter:blur(4px);
+}
+
+#lavaHud strong{
+  color:#ffb06f;
+}
+
+#lavaEventBanner{
+  position:absolute;
+  left:50%;
+  top:72px;
+  transform:translateX(-50%);
+  z-index:9;
+  padding:8px 14px;
+  border-radius:999px;
+  background:rgba(65,16,9,.84);
+  border:1px solid rgba(255,155,87,.55);
+  font-weight:800;
+  font-size:12px;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .18s ease;
+}
+
+#lavaEventBanner.active{
+  opacity:1;
+}
+
+#lavaRanking{
+  margin:12px auto 0;
+  max-width:420px;
+  padding:10px 12px;
+  border-radius:10px;
+  background:rgba(255,115,60,.08);
+  border:1px solid rgba(255,143,85,.24);
+  text-align:left;
+  font-size:12px;
+}
+
+#lavaRanking b{
+  color:#ffb06f;
+}
+
+body.offline-mode.lava-mode #lavaHud{
+  left:50%;
+  transform:translateX(-50%);
+  top:8px;
+}
+
+@media(max-width:700px){
+  #lavaHud{
+    left:6px;
+    top:6px;
+    min-width:150px;
+    padding:6px 8px;
+    font-size:10px;
+  }
+
+  #lavaEventBanner{
+    top:84px;
+    font-size:10px;
+  }
+}
