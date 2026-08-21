@@ -1,0 +1,121 @@
+[1mdiff --git a/README.md b/README.md[m
+[1mindex 46fc30a..c6ef4fc 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -1,107 +1,73 @@[m
+[31m-# Visões Cruzadas — V9.0 Character Plugin System[m
+[32m+[m[32m# Visões Cruzadas — V9.0.1[m
+ [m
+[31m-A V9.0 adiciona personagens procedurais, animados e extensíveis sem PNG.[m
+[32m+[m[32mAtualização focada exclusivamente no multiplayer: **anti-trapaça tolerante +[m
+[32m+[m[32msuavização de rede**.[m
+ [m
+[31m-## Personagens incluídos[m
+[32m+[m[32m## O que mudou[m
+ [m
+[31m-- Clássico[m
+[31m-- Robô[m
+[31m-- Ninja[m
+[31m-- Alien[m
+[32m+[m[32m- o Host não trata pequenas divergências como trapaça;[m
+[32m+[m[32m- tolerância considera intervalo real entre pacotes e sequências perdidas;[m
+[32m+[m[32m- correções moderadas são limitadas e enviadas como `soft`;[m
+[32m+[m[32m- `soft correction` é aplicada em vários frames, evitando teleporte;[m
+[32m+[m[32m- `hard correction` ficou reservada para estados não finitos ou saltos absurdos;[m
+[32m+[m[32m- snapshots ignoram pequenas diferenças normais da previsão do cliente;[m
+[32m+[m[32m- jogadores remotos recebem interpolação visual;[m
+[32m+[m[32m- Percurso, Sobrevivência e LAVA usam a mesma política;[m
+[32m+[m[32m- plataformas móveis, obstáculos e a Ventania do LAVA têm tolerâncias maiores;[m
+[32m+[m[32m- HUD mostra Ping, Ajustes e Bloqueios para diagnóstico.[m
+ [m
+[31m-Todos usam a cor do slot do jogador.[m
+[32m+[m[32m## Como interpretar o HUD[m
+ [m
+[31m-## Animações[m
+[31m-[m
+[31m-O Character System identifica automaticamente:[m
+[31m-[m
+[31m-- `idle`[m
+[31m-- `walk`[m
+[31m-- `jump`[m
+[31m-- `fall`[m
+[31m-- `death`[m
+[31m-[m
+[31m-As animações são desenhadas matematicamente no Canvas.[m
+[31m-[m
+[31m-## Funciona em todos os modos[m
+[31m-[m
+[31m-- Percurso[m
+[31m-- Sobrevivência[m
+[31m-- LAVA[m
+[31m-- futuros modos que chamem `CharacterSystem.drawPlayer(...)`[m
+[31m-[m
+[31m-## Couch Co-op[m
+[31m-[m
+[31m-O menu possui escolha separada:[m
+[31m-[m
+[31m-- personagem do jogador principal/P1;[m
+[31m-- personagem do P2 offline.[m
+[31m-[m
+[31m-## Multiplayer[m
+[31m-[m
+[31m-A escolha é sincronizada no lobby e incluída em `activeMatchRoster`.[m
+[31m-[m
+[31m-Não é necessário enviar o personagem a cada snapshot.[m
+[31m-[m
+[31m-## Estrutura[m
+[32m+[m[32mExemplo:[m
+ [m
+ ```text[m
+[31m-site/[m
+[31m-├── characters/[m
+[31m-│   ├── registry.json[m
+[31m-│   ├── classic/[m
+[31m-│   ├── robot/[m
+[31m-│   ├── ninja/[m
+[31m-│   ├── alien/[m
+[31m-│   └── _template/[m
+[31m-│[m
+[31m-└── js/[m
+[31m-    └── character-system.js[m
+[32m+[m[32mPing 74ms · Ajustes 2 · Bloqueios 0[m
+ ```[m
+ [m
+[31m-## Criar personagem novo[m
+[32m+[m[32m- `Ajustes`: reconciliações suaves. Alguns são normais.[m
+[32m+[m[32m- `Bloqueios`: correções rígidas por movimento muito fora do plausível.[m
+[32m+[m[32m- Se `Bloqueios` crescer rapidamente durante jogo normal, o validador ainda[m
+[32m+[m[32m  está agressivo demais.[m
+ [m
+[31m-```bash[m
+[31m-cp -r site/characters/_template site/characters/dragao[m
+[31m-```[m
+[32m+[m[32mNo Host, os números representam decisões do validador. Nos clientes,[m
+[32m+[m[32mrepresentam correções recebidas.[m
+ [m
+[31m-Depois edite:[m
+[32m+[m[32m## Anti-trapaça centralizado[m
+[32m+[m
+[32m+[m[32mArquivo:[m
+ [m
+ ```text[m
+[31m-site/characters/dragao/character.json[m
+[31m-site/characters/dragao/renderer.js[m
+[32m+[m[32msite/js/netcode-smoothing.js[m
+ ```[m
+ [m
+[31m-Execute:[m
+[32m+[m[32mNo começo dele existe:[m
+ [m
+[31m-```bash[m
+[31m-node tools/build-character-registry.mjs[m
+[31m-node tools/validate-characters.mjs[m
+[32m+[m[32m```javascript[m
+[32m+[m[32mguardMode: "tolerant"[m
+ ```[m
+ [m
+[31m-## Testar[m
+[32m+[m[32mA API também oferece:[m
+ [m
+[31m-```bash[m
+[31m-node t

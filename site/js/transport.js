@@ -325,13 +325,21 @@ async function handleWebSocketGameMessage(
     if(m.player){
       if(gameType==="course"){
         applyAuthoritativeCorrection(
-          m.player
+          m.player,
+          m.severity||
+          "soft",
+          m.reason||
+          "ajuste do Host"
         );
       }else if(
         gameType==="survival"
       ){
         applySurvivalAuthoritativeCorrection(
-          m.player
+          m.player,
+          m.severity||
+          "soft",
+          m.reason||
+          "ajuste do Host"
         );
       }
 

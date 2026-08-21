@@ -91,6 +91,7 @@ function loop(now){
     }
 
     draw();
+    NetSmoothing.updateHud();
   }
 
   requestAnimationFrame(loop);
@@ -102,6 +103,7 @@ setInterval(
       signal.readyState===
       WebSocket.OPEN
     ){
+      NetSmoothing.markPing();
       signal.send("ping");
     }
   },

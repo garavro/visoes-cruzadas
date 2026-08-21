@@ -69,20 +69,27 @@
         return this.state;
       }
 
+      const players=
+        (
+          this.state.players||
+          []
+        ).map(
+          player=>
+            player.playerId===
+            PLAYER_ID
+              ?{
+                  ...this.localPlayer
+                }
+              :player
+        );
+
       return{
         ...this.state,
         players:
-          (
-            this.state.players||
-            []
-          ).map(
-            player=>
-              player.playerId===
-              PLAYER_ID
-                ?{
-                    ...this.localPlayer
-                  }
-                :player
+          NetSmoothing.smoothRemotePlayers(
+            "lava",
+            players,
+            PLAYER_ID
           )
       };
     }
@@ -333,6 +340,15 @@
       L.runtime.state;
 
     L.runtime.validation.clear();
+
+    NetSmoothing.clearCorrection(
+      "lava-local"
+    );
+
+    NetSmoothing.clearScope(
+      "lava"
+    );
+
     L.runtime.seq=0;
     L.runtime.sendAccumulator=0;
     L.runtime.snapshotAccumulator=0;
@@ -752,6 +768,12 @@
       elapsed
     );
 
+    NetSmoothing.stepCorrection(
+      "lava-local",
+      L.runtime.localPlayer,
+      dt
+    );
+
     /*
       A morte local é apenas uma previsão visual.
       O Host ainda decide oficialmente.
@@ -888,20 +910,7 @@
       payload.y,
       payload.vx,
       payload.vy
-    ].map(
-      Number
-    );
-
-    if(
-      values.some(
-        value=>
-          !Number.isFinite(
-            value
-          )
-      )
-    ){
-      return false;
-    }
+    ].map(Number);
 
     const now=
       performance.now();
@@ -912,6 +921,8 @@
       )||{
         x:player.x,
         y:player.y,
+        vx:player.vx,
+        vy:player.vy,
         time:now-70,
         seq:-1
       };
@@ -923,76 +934,63 @@
 
     if(
       seq<=
-      previous.seq
+      Number(
+        previous.seq
+      )
     ){
       return false;
     }
 
-    const seconds=
-      Math.max(
-        .016,
-        Math.min(
-          .35,
-          (
-            now-
-            previous.time
-          )/
-          1000
-        )
+    const event=
+      L.currentEvent(
+        s.seed,
+        s.elapsed
       );
 
-    const dx=
-      Math.abs(
-        values[0]-
-        previous.x
-      );
+    const windAllowance=
+      event?.type===
+      "wind"
+        ?140
+        :0;
 
-    const dy=
-      Math.abs(
-        values[1]-
-        previous.y
-      );
-
-    const maxDx=
-      (
-        L.MOVE_SPEED+
-        120
-      )*
-      seconds+
-      95;
-
-    const maxDy=
-      Math.max(
-        L.JUMP_SPEED+
-        180,
-        Math.abs(
-          Number(
-            player.vy
-          )||0
-        )+
-        L.GRAVITY*
-        seconds
-      )*
-      seconds+
-      120;
+    const verdict=
+      NetSmoothing.movementVerdict({
+        previous,
+        values,
+        seq,
+        now,
+        horizontalSpeed:
+          L.MOVE_SPEED+
+          windAllowance,
+        verticalSpeed:
+          L.JUMP_SPEED,
+        gravity:L.GRAVITY,
+        paddingX:220,
+        paddingY:250,
+        maxVx:
+          L.MOVE_SPEED+
+          300,
+        maxVy:1500,
+        hardDistanceX:980,
+        hardDistanceY:1150
+      });
 
     if(
-      dx>maxDx||
-      dy>maxDy||
-      Math.abs(
-        values[2]
-      )>
-      720||
-      Math.abs(
-        values[3]
-      )>
-      1250
+      verdict.kind==="invalid"||
+      verdict.kind==="hard"
     ){
+      NetSmoothing.noteHostVerdict(
+        verdict
+      );
+
       ModeSystem
         .context()
         .sendMode(
           {
             type:"correction",
+            severity:"hard",
+            reason:
+              verdict.reason,
             player:{
               ...player
             }
@@ -1003,10 +1001,14 @@
       return false;
     }
 
-    player.x=values[0];
-    player.y=values[1];
-    player.vx=values[2];
-    player.vy=values[3];
+    const accepted=
+      verdict.values||
+      values;
+
+    player.x=accepted[0];
+    player.y=accepted[1];
+    player.vx=accepted[2];
+    player.vy=accepted[3];
     player.onGround=
       !!payload.onGround;
     player.jumpLock=
@@ -1030,10 +1032,33 @@
       {
         x:player.x,
         y:player.y,
+        vx:player.vx,
+        vy:player.vy,
         time:now,
         seq
       }
     );
+
+    if(verdict.kind==="soft"){
+      NetSmoothing.noteHostVerdict(
+        verdict
+      );
+
+      ModeSystem
+        .context()
+        .sendMode(
+          {
+            type:"correction",
+            severity:"soft",
+            reason:
+              verdict.reason,
+            player:{
+              ...player
+            }
+          },
+          playerId
+        );
+    }
 
     L.ensureWorld(
       L.runtime.world,
@@ -1144,44 +1169,33 @@
         L.runtime.localPlayer={
           ...official
         };
+
+        NetSmoothing.clearCorrection(
+          "lava-local"
+        );
       }else{
-        const dx=
-          official.x-
-          previousLocal.x;
+        NetSmoothing.reconcileSnapshot(
+          "lava-local",
+          previousLocal,
+          official,
+          {
+            ignoreDistance:82,
+            mediumDistance:320,
+            hardDistance:860
+          }
+        );
 
-        const dy=
-          official.y-
-          previousLocal.y;
-
-        const distance=
-          Math.hypot(
-            dx,
-            dy
+        previousLocal.alive=true;
+        previousLocal.maxY=
+          Math.max(
+            previousLocal.maxY||
+            L.START_Y,
+            official.maxY||
+            official.y
           );
 
-        if(distance>150){
-          L.runtime.localPlayer={
-            ...official
-          };
-        }else{
-          previousLocal.x+=
-            dx*.16;
-
-          previousLocal.y+=
-            dy*.16;
-
-          previousLocal.alive=true;
-          previousLocal.maxY=
-            Math.max(
-              previousLocal.maxY||
-              L.START_Y,
-              official.maxY||
-              official.y
-            );
-
-          L.runtime.localPlayer=
-            previousLocal;
-        }
+        L.runtime.localPlayer=
+          previousLocal;
       }
     }else if(official){
       L.runtime.localPlayer={
@@ -1398,9 +1412,28 @@
         "correction"&&
         message.player
       ){
-        L.runtime.localPlayer={
-          ...message.player
-        };
+        if(
+          !L.runtime.localPlayer
+        ){
+          L.runtime.localPlayer={
+            ...message.player
+          };
+        }else{
+          NetSmoothing.receiveCorrection(
+            "lava-local",
+            L.runtime.localPlayer,
+            message.player,
+            {
+              severity:
+                message.severity||
+                "soft",
+              reason:
+                message.reason||
+                "ajuste do Host",
+              hardDistance:860
+            }
+          );
+        }
 
         return true;
       }

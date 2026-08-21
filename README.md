@@ -1,107 +1,73 @@
-# Visões Cruzadas — V9.0 Character Plugin System
+# Visões Cruzadas — V9.0.1
 
-A V9.0 adiciona personagens procedurais, animados e extensíveis sem PNG.
+Atualização focada exclusivamente no multiplayer: **anti-trapaça tolerante +
+suavização de rede**.
 
-## Personagens incluídos
+## O que mudou
 
-- Clássico
-- Robô
-- Ninja
-- Alien
+- o Host não trata pequenas divergências como trapaça;
+- tolerância considera intervalo real entre pacotes e sequências perdidas;
+- correções moderadas são limitadas e enviadas como `soft`;
+- `soft correction` é aplicada em vários frames, evitando teleporte;
+- `hard correction` ficou reservada para estados não finitos ou saltos absurdos;
+- snapshots ignoram pequenas diferenças normais da previsão do cliente;
+- jogadores remotos recebem interpolação visual;
+- Percurso, Sobrevivência e LAVA usam a mesma política;
+- plataformas móveis, obstáculos e a Ventania do LAVA têm tolerâncias maiores;
+- HUD mostra Ping, Ajustes e Bloqueios para diagnóstico.
 
-Todos usam a cor do slot do jogador.
+## Como interpretar o HUD
 
-## Animações
-
-O Character System identifica automaticamente:
-
-- `idle`
-- `walk`
-- `jump`
-- `fall`
-- `death`
-
-As animações são desenhadas matematicamente no Canvas.
-
-## Funciona em todos os modos
-
-- Percurso
-- Sobrevivência
-- LAVA
-- futuros modos que chamem `CharacterSystem.drawPlayer(...)`
-
-## Couch Co-op
-
-O menu possui escolha separada:
-
-- personagem do jogador principal/P1;
-- personagem do P2 offline.
-
-## Multiplayer
-
-A escolha é sincronizada no lobby e incluída em `activeMatchRoster`.
-
-Não é necessário enviar o personagem a cada snapshot.
-
-## Estrutura
+Exemplo:
 
 ```text
-site/
-├── characters/
-│   ├── registry.json
-│   ├── classic/
-│   ├── robot/
-│   ├── ninja/
-│   ├── alien/
-│   └── _template/
-│
-└── js/
-    └── character-system.js
+Ping 74ms · Ajustes 2 · Bloqueios 0
 ```
 
-## Criar personagem novo
+- `Ajustes`: reconciliações suaves. Alguns são normais.
+- `Bloqueios`: correções rígidas por movimento muito fora do plausível.
+- Se `Bloqueios` crescer rapidamente durante jogo normal, o validador ainda
+  está agressivo demais.
 
-```bash
-cp -r site/characters/_template site/characters/dragao
-```
+No Host, os números representam decisões do validador. Nos clientes,
+representam correções recebidas.
 
-Depois edite:
+## Anti-trapaça centralizado
+
+Arquivo:
 
 ```text
-site/characters/dragao/character.json
-site/characters/dragao/renderer.js
+site/js/netcode-smoothing.js
 ```
 
-Execute:
+No começo dele existe:
 
-```bash
-node tools/build-character-registry.mjs
-node tools/validate-characters.mjs
+```javascript
+guardMode: "tolerant"
 ```
 
-## Testar
+A API também oferece:
 
-```bash
-node tools/build-character-registry.mjs
-node tools/validate-characters.mjs
-node tools/build-mode-registry.mjs
-node tools/validate-modes.mjs
-cd site
-python3 -m http.server 8080
+```javascript
+NetSmoothing.setGuardMode("off");
 ```
 
-## GitHub Pages
+`off` deve ser usado somente para diagnóstico. Nesse modo o validador ainda
+recusa valores não finitos pela camada de chamada, mas deixa de aplicar os
+limites normais de movimento.
 
-O workflow agora gera tanto:
+## Teste recomendado
 
-```text
-modes/registry.json
-characters/registry.json
-```
+Teste primeiro com 2 jogadores online:
 
-antes do deploy.
+1. Host parado e cliente correndo/pulando.
+2. Cliente usando plataformas móveis no Percurso.
+3. Sobrevivência com vários obstáculos empurrando o cliente.
+4. LAVA durante Ventania e ERUPÇÃO.
+5. Observe `Ajustes` e principalmente `Bloqueios`.
 
-## Cloudflare / D1
+Depois teste com 3–4 jogadores.
 
-A V9.0 não exige migration e não exige atualização do Worker. A sincronização
-da escolha usa o `game-relay` já existente.
+## Backend
+
+Não é necessário alterar Worker, Durable Object ou D1.

@@ -742,10 +742,20 @@ function initializeLocalDistributedSurvivalPlayer(){
 
   survivalDistributedSeq=0;
   survivalDistributedSendAccumulator=0;
+
+  NetSmoothing.clearCorrection(
+    "survival-local"
+  );
+
+  NetSmoothing.clearScope(
+    "survival"
+  );
 }
 
 function applySurvivalAuthoritativeCorrection(
-  player
+  player,
+  severity="soft",
+  reason="ajuste do Host"
 ){
   if(!player)return;
 
@@ -759,9 +769,28 @@ function applySurvivalAuthoritativeCorrection(
     return;
   }
 
-  Object.assign(
+  if(player.alive===false){
+    Object.assign(
+      localDistributedSurvivalPlayer,
+      player
+    );
+
+    NetSmoothing.clearCorrection(
+      "survival-local"
+    );
+
+    return;
+  }
+
+  NetSmoothing.receiveCorrection(
+    "survival-local",
     localDistributedSurvivalPlayer,
-    player
+    player,
+    {
+      severity,
+      reason,
+      hardDistance:800
+    }
   );
 }
 
@@ -789,37 +818,24 @@ function syncLocalSurvivalWithSnapshot(
     false
   ){
     applySurvivalAuthoritativeCorrection(
-      official
+      official,
+      "hard",
+      "jogador eliminado"
     );
 
     return;
   }
 
-  const dx=
-    official.x-
-    localDistributedSurvivalPlayer.x;
-
-  const dy=
-    official.y-
-    localDistributedSurvivalPlayer.y;
-
-  const distance=
-    Math.hypot(
-      dx,
-      dy
-    );
-
-  if(distance>170){
-    applySurvivalAuthoritativeCorrection(
-      official
-    );
-  }else if(distance>36){
-    localDistributedSurvivalPlayer.x+=
-      dx*.16;
-
-    localDistributedSurvivalPlayer.y+=
-      dy*.16;
-  }
+  NetSmoothing.reconcileSnapshot(
+    "survival-local",
+    localDistributedSurvivalPlayer,
+    official,
+    {
+      ignoreDistance:78,
+      mediumDistance:300,
+      hardDistance:800
+    }
+  );
 }
 
 function distributedSurvivalRenderState(){
@@ -830,20 +846,27 @@ function distributedSurvivalRenderState(){
     return remoteState;
   }
 
+  const players=
+    (
+      remoteState.players||
+      []
+    ).map(
+      player=>
+        player.playerId===
+        PLAYER_ID
+          ?{
+              ...localDistributedSurvivalPlayer
+            }
+          :player
+    );
+
   return{
     ...remoteState,
     players:
-      (
-        remoteState.players||
-        []
-      ).map(
-        player=>
-          player.playerId===
-          PLAYER_ID
-            ?{
-                ...localDistributedSurvivalPlayer
-              }
-            :player
+      NetSmoothing.smoothRemotePlayers(
+        "survival",
+        players,
+        PLAYER_ID
       )
   };
 }
@@ -1073,6 +1096,12 @@ function clientUpdateDistributedSurvival(
     remoteState
   );
 
+  NetSmoothing.stepCorrection(
+    "survival-local",
+    localDistributedSurvivalPlayer,
+    dt
+  );
+
   survivalDistributedSendAccumulator+=
     dt;
 
@@ -1250,23 +1279,6 @@ function validateDistributedSurvivalPlayerState(
     payload.vy
   ].map(Number);
 
-  if(
-    values.some(
-      value=>
-        !Number.isFinite(
-          value
-        )
-    )
-  ){
-    sendPlayerCorrection(
-      playerId,
-      player,
-      "estado inválido"
-    );
-
-    return false;
-  }
-
   const now=
     performance.now();
 
@@ -1289,13 +1301,6 @@ function validateDistributedSurvivalPlayerState(
     return false;
   }
 
-  const elapsed=
-    clamp(
-      (now-previous.time)/1000,
-      .016,
-      .35
-    );
-
   const hazardSpeed=
     Math.max(
       MOVE_SPEED,
@@ -1316,76 +1321,63 @@ function validateDistributedSurvivalPlayerState(
       0
     );
 
-  const dx=
-    Math.abs(
-      values[0]-
-      previous.x
-    );
-
-  const dy=
-    Math.abs(
-      values[1]-
-      previous.y
-    );
-
-  const maxDx=
-    hazardSpeed*
-    elapsed+
-    115;
-
-  const maxDy=
-    Math.max(
-      Math.abs(
-        previous.vy
-      ),
-      Math.abs(
-        values[3]
-      ),
-      hazardSpeed,
-      JUMP_SPEED
-    )*
-    elapsed+
-    135;
+  const verdict=
+    NetSmoothing.movementVerdict({
+      previous,
+      values,
+      seq,
+      now,
+      horizontalSpeed:
+        Math.max(
+          MOVE_SPEED,
+          hazardSpeed
+        ),
+      verticalSpeed:
+        Math.max(
+          JUMP_SPEED,
+          hazardSpeed
+        ),
+      gravity:GRAVITY,
+      paddingX:205,
+      paddingY:245,
+      maxVx:
+        Math.max(
+          1050,
+          hazardSpeed*1.9
+        ),
+      maxVy:2100,
+      hardDistanceX:940,
+      hardDistanceY:1080
+    });
 
   if(
-    dx>maxDx||
-    dy>maxDy||
-    Math.abs(
-      values[2]
-    )>
-      Math.max(
-        950,
-        hazardSpeed*1.6
-      )||
-    Math.abs(
-      values[3]
-    )>
-      1900
+    verdict.kind==="invalid"||
+    verdict.kind==="hard"
   ){
+    NetSmoothing.noteHostVerdict(
+      verdict
+    );
+
     sendPlayerCorrection(
       playerId,
       player,
-      "movimento fora do limite"
+      verdict.reason,
+      "hard"
     );
 
     return false;
   }
 
-  player.x=
-    values[0];
+  const accepted=
+    verdict.values||
+    values;
 
-  player.y=
-    values[1];
-
-  player.vx=
-    values[2];
-
-  player.vy=
-    values[3];
-
+  player.x=accepted[0];
+  player.y=accepted[1];
+  player.vx=accepted[2];
+  player.vy=accepted[3];
   player.onGround=
     !!payload.onGround;
-
   player.jumpLock=
     !!payload.jumpLock;
 
@@ -1401,6 +1393,19 @@ function validateDistributedSurvivalPlayerState(
         Number(seq)||0
     }
   );
+
+  if(verdict.kind==="soft"){
+    NetSmoothing.noteHostVerdict(
+      verdict
+    );
+
+    sendPlayerCorrection(
+      playerId,
+      player,
+      verdict.reason,
+      "soft"
+    );
+  }
 
   evaluateDistributedSurvivalPlayer(
     player

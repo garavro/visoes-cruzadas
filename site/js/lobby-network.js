@@ -477,7 +477,10 @@ function connectSignal(){
   };
 
   signal.onmessage=async e=>{
-    if(e.data==="pong")return;
+    if(e.data==="pong"){
+      NetSmoothing.markPong();
+      return;
+    }
 
     let m;
     try{

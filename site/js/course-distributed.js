@@ -204,9 +204,21 @@ function initializeLocalDistributedPlayer(){
 
   distributedStateSeq=0;
   distributedSendAccumulator=0;
+
+  NetSmoothing.clearCorrection(
+    "course-local"
+  );
+
+  NetSmoothing.clearScope(
+    "course"
+  );
 }
 
-function applyAuthoritativeCorrection(player){
+function applyAuthoritativeCorrection(
+  player,
+  severity="soft",
+  reason="ajuste do Host"
+){
   if(!player)return;
 
   if(!localDistributedPlayer){
@@ -214,9 +226,28 @@ function applyAuthoritativeCorrection(player){
     return;
   }
 
-  Object.assign(
+  if(player.alive===false){
+    Object.assign(
+      localDistributedPlayer,
+      player
+    );
+
+    NetSmoothing.clearCorrection(
+      "course-local"
+    );
+
+    return;
+  }
+
+  NetSmoothing.receiveCorrection(
+    "course-local",
     localDistributedPlayer,
-    player
+    player,
+    {
+      severity,
+      reason,
+      hardDistance:760
+    }
   );
 
   distributedLastCorrectionAt=
@@ -233,7 +264,11 @@ function syncLocalPlayerWithWorldSnapshot(previousState,nextState){
   );
 
   if(official?.alive===false){
-    applyAuthoritativeCorrection(official);
+    applyAuthoritativeCorrection(
+      official,
+      "hard",
+      "jogador eliminado"
+    );
     return;
   }
 
@@ -242,20 +277,20 @@ function syncLocalPlayerWithWorldSnapshot(previousState,nextState){
   }
 
   /*
-    Plataformas móveis são aplicadas localmente por frame.
-    O snapshot serve apenas para pequenas correções do personagem.
+    Snapshot não deve puxar o jogador para trás por diferenças pequenas.
+    Só divergências relevantes são reconciliadas.
   */
   if(official){
-    const dx=official.x-localDistributedPlayer.x;
-    const dy=official.y-localDistributedPlayer.y;
-    const distance=Math.hypot(dx,dy);
-
-    if(distance>150){
-      applyAuthoritativeCorrection(official);
-    }else if(distance>30){
-      localDistributedPlayer.x+=dx*.18;
-      localDistributedPlayer.y+=dy*.18;
-    }
+    NetSmoothing.reconcileSnapshot(
+      "course-local",
+      localDistributedPlayer,
+      official,
+      {
+        ignoreDistance:72,
+        mediumDistance:280,
+        hardDistance:760
+      }
+    );
   }
 }
 
@@ -267,14 +302,22 @@ function distributedClientRenderState(){
     return remoteState;
   }
 
-  return{
-    ...remoteState,
-    players:(remoteState.players||[]).map(
+  const players=
+    (remoteState.players||[]).map(
       player=>
         player.playerId===PLAYER_ID
           ?{...localDistributedPlayer}
           :player
-    )
+    );
+
+  return{
+    ...remoteState,
+    players:
+      NetSmoothing.smoothRemotePlayers(
+        "course",
+        players,
+        PLAYER_ID
+      )
   };
 }
 
@@ -402,6 +445,12 @@ function clientUpdateDistributedCourse(dt){
     remoteState
   );
 
+  NetSmoothing.stepCorrection(
+    "course-local",
+    localDistributedPlayer,
+    dt
+  );
+
   distributedSendAccumulator+=dt;
 
   if(distributedSendAccumulator>=.05){
@@ -410,12 +459,18 @@ function clientUpdateDistributedCourse(dt){
   }
 }
 
-function sendPlayerCorrection(playerId,player,reason){
+function sendPlayerCorrection(
+  playerId,
+  player,
+  reason,
+  severity="soft"
+){
   sendGame(
     {
       type:"player-correction",
       player:{...player},
-      reason
+      reason,
+      severity
     },
     playerId
   );
@@ -447,20 +502,9 @@ function validateDistributedPlayerState(
     payload.vy
   ].map(Number);
 
-  if(
-    values.some(
-      value=>!Number.isFinite(value)
-    )
-  ){
-    sendPlayerCorrection(
-      playerId,
-      player,
-      "estado inválido"
-    );
-    return false;
-  }
+  const now=
+    performance.now();
 
-  const now=performance.now();
   const previous=
     distributedValidationByPlayer.get(
       playerId
@@ -480,56 +524,49 @@ function validateDistributedPlayerState(
     return false;
   }
 
-  const elapsed=clamp(
-    (now-previous.time)/1000,
-    .016,
-    .35
-  );
-
-  const dx=Math.abs(
-    values[0]-previous.x
-  );
-
-  const dy=Math.abs(
-    values[1]-previous.y
-  );
-
-  /*
-    Margens incluem jitter de rede e deslocamento de plataforma móvel.
-    O objetivo desta etapa é bloquear teleporte grosseiro, não criar um
-    anti-cheat completo.
-  */
-  const maxDx=
-    MOVE_SPEED*elapsed+
-    75;
-
-  const maxDy=
-    Math.max(
-      Math.abs(previous.vy),
-      Math.abs(values[3]),
-      JUMP_SPEED
-    )*elapsed+
-    105;
+  const verdict=
+    NetSmoothing.movementVerdict({
+      previous,
+      values,
+      seq,
+      now,
+      horizontalSpeed:MOVE_SPEED,
+      verticalSpeed:JUMP_SPEED,
+      gravity:GRAVITY,
+      paddingX:175,
+      paddingY:215,
+      maxVx:MOVE_SPEED*1.65,
+      maxVy:1750,
+      hardDistanceX:820,
+      hardDistanceY:980
+    });
 
   if(
-    dx>maxDx||
-    dy>maxDy||
-    Math.abs(values[2])>
-      MOVE_SPEED*1.35||
-    Math.abs(values[3])>1700
+    verdict.kind==="invalid"||
+    verdict.kind==="hard"
   ){
+    NetSmoothing.noteHostVerdict(
+      verdict
+    );
+
     sendPlayerCorrection(
       playerId,
       player,
-      "movimento fora do limite"
+      verdict.reason,
+      "hard"
     );
+
     return false;
   }
 
-  player.x=values[0];
-  player.y=values[1];
-  player.vx=values[2];
-  player.vy=values[3];
+  const accepted=
+    verdict.values||
+    values;
+
+  player.x=accepted[0];
+  player.y=accepted[1];
+  player.vx=accepted[2];
+  player.vy=accepted[3];
   player.onGround=!!payload.onGround;
   player.groundBlockId=
     typeof payload.groundBlockId==="string"
@@ -548,6 +585,19 @@ function validateDistributedPlayerState(
       seq:Number(seq)||0
     }
   );
+
+  if(verdict.kind==="soft"){
+    NetSmoothing.noteHostVerdict(
+      verdict
+    );
+
+    sendPlayerCorrection(
+      playerId,
+      player,
+      verdict.reason,
+      "soft"
+    );
+  }
 
   evaluateDistributedCoursePlayer(
     player
