@@ -126,48 +126,53 @@ async function refreshPlayerProgress(){
     return;
   }
 
-  if(gameMode==="offline"){updatePhaseCounter();return;}
+  if(gameMode==="offline"){
+    updatePhaseCounter();
+    return;
+  }
+
+  if(typeof ServerSecurity==="undefined"||!ServerSecurity.hasSession()){
+    updatePhaseCounter();
+    return;
+  }
+
   try{
-    const params=new URLSearchParams({
-      player_id:PLAYER_ID
-    });
-
-    const stats=await apiFetch(
-      `/api/player/stats?${params}`
-    );
-
+    const stats=await apiFetch("/api/player/stats");
     playerPlayedCount=Number(stats?.played||0);
     updatePhaseCounter();
   }catch(error){
-    console.warn(
-      "Não foi possível carregar o contador de fases:",
-      error
-    );
+    console.warn("Não foi possível carregar o contador de fases:",error);
     updatePhaseCounter();
   }
 }
 
 async function apiFetch(path,options={}){
+  const token=typeof ServerSecurity!=="undefined"?ServerSecurity.token():null;
+  if(!token){
+    const error=new Error("Sessão segura não está ativa.");
+    error.status=401;
+    throw error;
+  }
+
   const response=await fetch(API_BASE+path,{
     ...options,
+    cache:"no-store",
+    credentials:"omit",
+    referrerPolicy:"no-referrer",
     headers:{
       "content-type":"application/json",
+      "authorization":`Bearer ${token}`,
       ...(options.headers||{})
     }
   });
 
   let data=null;
-  try{
-    data=await response.json();
-  }catch{
-    data={error:await response.text().catch(()=>response.statusText)};
-  }
+  try{data=await response.json()}catch{data={error:await response.text().catch(()=>response.statusText)}}
 
   if(!response.ok){
     const error=new Error(data?.error||`HTTP ${response.status}`);
     error.status=response.status;
     throw error;
   }
-
   return data;
 }

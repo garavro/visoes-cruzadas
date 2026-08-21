@@ -347,39 +347,34 @@ function showLobby(){
   resetRoster();
 }
 function resetPresence(){resetRoster()}
-function createModeRoom(modeId){
-  const manifest=
-    ModeSystem.manifest(
-      modeId
-    );
-
-  if(
-    !manifest||
-    !manifest.online
-  ){
-    $("menuStatus").textContent=
-      "Este modo não oferece multiplayer online.";
+async function createModeRoom(modeId){
+  const manifest=ModeSystem.manifest(modeId);
+  if(!manifest||!manifest.online){
+    $("menuStatus").textContent="Este modo não oferece multiplayer online.";
     return;
   }
 
   gameMode="online";
   gameType=modeId;
-  roomCode=randomRoom();
   role="host";
+  roomCode=null;
+  document.body.className=ModeSystem.bodyClassFor(modeId,"role-host");
+  $("menuStatus").textContent="Criando sala segura no servidor...";
 
-  document.body.className=
-    ModeSystem.bodyClassFor(
-      modeId,
-      "role-host"
-    );
-
-  updateMapPanelForRole();
-  showLobby();
-
-  $("lobbyMessage").textContent=
-    `${manifest.name}. Compartilhe o código da sala.`;
-
-  connectSignal();
+  try{
+    const session=await ServerSecurity.createSession({requestedRole:"host"});
+    roomCode=session.roomCode;
+    updateMapPanelForRole();
+    showLobby();
+    $("lobbyMessage").textContent=`${manifest.name}. Compartilhe apenas o código da sala.`;
+    connectSignal();
+  }catch(error){
+    console.error("Falha ao criar sessão segura:",error);
+    ServerSecurity.clear();
+    role=null;
+    roomCode=null;
+    $("menuStatus").textContent="Não foi possível criar a sala: "+error.message;
+  }
 }
 
 function launchOfflineMode(modeId){
@@ -402,34 +397,34 @@ function launchOfflineMode(modeId){
   );
 }
 
-$("joinRoom").onclick=()=>{
+$("joinRoom").onclick=async()=>{
   gameMode="online";
   gameType="waiting";
 
-  const c=
-    $("roomInput")
-      .value
-      .toUpperCase()
-      .replace(
-        /[^A-Z0-9]/g,
-        ""
-      )
-      .trim();
-
-  if(c.length<4){
-    $("menuStatus").textContent=
-      "Digite um código válido.";
+  const c=$("roomInput").value.toUpperCase().replace(/[^A-Z0-9]/g,"").trim();
+  if(c.length<4||c.length>8){
+    $("menuStatus").textContent="Digite um código válido.";
     return;
   }
 
-  roomCode=c;
   role="client";
-  document.body.className=
-    "role-client";
+  roomCode=c;
+  document.body.className="role-client";
+  $("menuStatus").textContent="Autorizando entrada na sala...";
 
-  updateMapPanelForRole();
-  showLobby();
-  connectSignal();
+  try{
+    const session=await ServerSecurity.createSession({requestedRole:"client",requestedRoomCode:c});
+    roomCode=session.roomCode;
+    updateMapPanelForRole();
+    showLobby();
+    connectSignal();
+  }catch(error){
+    console.error("Falha ao entrar na sala:",error);
+    ServerSecurity.clear();
+    role=null;
+    roomCode=null;
+    $("menuStatus").textContent="Não foi possível entrar: "+error.message;
+  }
 };
 
 $("startLobbyGame").onclick=()=>{beginLobbyGame()};
@@ -452,10 +447,14 @@ function returnToMenu(){
   setScreen("menu");
 }
 function connectSignal(){
-  const url=
-    `${SIGNAL_SERVER}/room/${roomCode}?role=${role}&player_id=${encodeURIComponent(PLAYER_ID)}`;
+  const ticket=ServerSecurity.takeWsTicket();
+  if(!ticket||!roomCode){
+    $("lobbyMessage").textContent="Sessão WebSocket inválida. Volte ao menu e tente novamente.";
+    return;
+  }
 
-  console.log("Conectando ao WebSocket:",url);
+  const url=`${SIGNAL_SERVER}/room/${roomCode}?ticket=${encodeURIComponent(ticket)}`;
+  console.log("Conectando à sala segura:",roomCode);
 
   try{
     signal=new WebSocket(url);
@@ -466,9 +465,10 @@ function connectSignal(){
   }
 
   signal.onopen=()=>{
-    console.log("WebSocket ABERTO:",signal.url);
+    console.log("WebSocket seguro aberto.");
 
     CharacterSystem.broadcastChoice();
+    refreshPlayerProgress();
 
     $("lobbyMessage").textContent=
       role==="host"
@@ -513,6 +513,14 @@ function connectSignal(){
           '<div class="status" style="color:#ff9aa4">Worker antigo detectado. Publique o Worker V8.1.</div>';
         $("lobbyMessage").textContent=
           "Servidor antigo detectado: atualize o Cloudflare Worker.";
+        return;
+      }
+
+      if(Number(String(m.serverVersion||"0").split(".")[0])<9||m.secureSession!==true){
+        roomPlayers=[];
+        $("playerCountBadge").textContent="—";
+        $("playerList").innerHTML='<div class="status" style="color:#ff9aa4">Worker incompatível. Publique o Worker V9.1.</div>';
+        $("lobbyMessage").textContent="O frontend V9.1 exige o Worker V9.1.";
         return;
       }
 

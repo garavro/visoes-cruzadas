@@ -871,7 +871,12 @@ function generateValidNewMapOffline(){const rejected=safeReadStorage(STORAGE_REJ
 function loadNextOfflineMap(){const map=generateValidNewMapOffline();applyMap(map);state=newState();remoteState=newState();recordOfflineMapPlayed(map);hideEnd();setEndActions("none");return map}
 function saveOfflineApprovedMap(){if(!currentMap||!mapWasCompleted){$("mapLocalStatus").textContent="Complete a fase antes de marcá-la como possível.";return}const approved=safeReadStorage(OFFLINE_APPROVED_STORAGE);if(!approved.some(item=>item.hash===currentMap.hash)){approved.push({seed:currentMap.seed,hash:currentMap.hash,generatorVersion:currentMap.generatorVersion,map:currentMap,approvedAt:new Date().toISOString()});safeWriteStorage(OFFLINE_APPROVED_STORAGE,approved.slice(-500))}$("mapLocalStatus").textContent="✓ Mapa aprovado e salvo neste dispositivo.";setEndActions("next")}
 function rejectOfflineMap(){if(!currentMap)return;const rejected=safeReadStorage(STORAGE_REJECTED);if(!rejected.some(item=>item.hash===currentMap.hash)){rejected.push({seed:currentMap.seed,hash:currentMap.hash,generatorVersion:currentMap.generatorVersion,rejectedAt:new Date().toISOString()});safeWriteStorage(STORAGE_REJECTED,rejected.slice(-1000))}$("mapLocalStatus").textContent="✕ Mapa rejeitado localmente. Gerando outro...";loadNextOfflineMap()}
-function cleanupConnectionForModeChange(){try{signal?.close()}catch{}signal=null;cleanupRTC()}
+function cleanupConnectionForModeChange(){
+  try{signal?.close()}catch{}
+  signal=null;
+  if(typeof ServerSecurity!=="undefined")ServerSecurity.clear();
+  cleanupRTC();
+}
 function startOfflineGame(type="course"){
   cleanupConnectionForModeChange();
 
@@ -1011,9 +1016,11 @@ function applyMap(map){
   $("mapSource").textContent=
     source==="database"
       ?"BANCO D1"
-      :source==="offline"
-        ?"GERADO OFFLINE"
-        :"GERADO AGORA";
+      :source==="pending"
+        ?"PENDENTE"
+        :source==="offline"
+          ?"GERADO OFFLINE"
+          :"GERADO AGORA";
 
   $("mapTargetPlayers").textContent=
     Number(map.playerCount)||2;
@@ -1095,13 +1102,7 @@ async function loadNextMapForPair(){
 
     const response=await apiFetch(
       "/api/maps/next",
-      {
-        method:"POST",
-        body:JSON.stringify({
-          player_ids:playerIds,
-          player_count:playerIds.length
-        })
-      }
+      {method:"POST",body:"{}"}
     );
 
     let map;
@@ -1177,7 +1178,6 @@ async function markMapPlayed(mapId,completed){
         method:"POST",
         body:JSON.stringify({
           map_id:mapId,
-          player_ids:playerIds,
           completed:!!completed
         })
       }
@@ -1229,162 +1229,96 @@ function mapForDatabase(map){
 
 async function saveApprovedMap(){
   if(gameMode==="offline"){saveOfflineApprovedMap();return;}
-  if(role!=="host"||!currentMap){return;}
+  if(role!=="host"||!currentMap)return;
 
-  if(
-    currentMap.source==="database"||
-    currentMap.databaseId
-  ){
-    $("mapLocalStatus").textContent=
-      "Este mapa já pertence à biblioteca.";
+  if(currentMap.source==="database"||currentMap.databaseId){
+    $("mapLocalStatus").textContent="Este mapa já pertence à biblioteca aprovada.";
     return;
   }
-
-  if(
-    !mapWasCompleted
-  ){
-    $("mapLocalStatus").textContent=
-      "Complete o mapa antes de marcá-lo como possível.";
-    return;
-  }
-
-  $("approveMapBtn").disabled=
-    true;
-
-  $("rejectMapBtn").disabled=
-    true;
-
-  $("mapLocalStatus").textContent=
-    "Salvando mapa no Cloudflare D1...";
-
-  try{
-    const response=
-      await apiFetch(
-        "/api/maps/approve",
-        {
-          method:"POST",
-          body:
-            JSON.stringify({
-              seed:
-                currentMap.seed,
-              map_hash:
-                currentMap.hash,
-              generator_version:
-                currentMap.generatorVersion,
-              player_count:
-                Number(currentMap.playerCount)||2,
-              map:
-                mapForDatabase(
-                  currentMap
-                )
-            })
-        }
-      );
-
-    currentMap.databaseId=
-      response.id;
-
-    currentMap.source=
-      "database";
-
-    $("mapSource").textContent=
-      "BANCO D1";
-
-    $("mapLocalStatus").textContent=
-      "✓ Mapa aprovado e salvo globalmente no D1.";
-
-    await markMapPlayed(
-      currentMap.databaseId,
-      true
-    );
-
-    setEndActions("next");
-  }catch(error){
-    console.error(error);
-
-    $("mapLocalStatus").textContent=
-      "Falha ao salvar no D1: "+
-      error.message;
-
-    $("approveMapBtn").disabled=
-      false;
-
-    $("rejectMapBtn").disabled=
-      false;
-  }
-}
-
-async function rejectCurrentMap(){
-  if(gameMode==="offline"){rejectOfflineMap();return;}
-  if(role!=="host"||!currentMap){return;}
-
-  if(
-    currentMap.source==="database"||
-    currentMap.databaseId
-  ){
-    $("mapLocalStatus").textContent=
-      "Mapas já aprovados não podem ser rejeitados nesta versão.";
+  if(!mapWasCompleted){
+    $("mapLocalStatus").textContent="Complete o mapa antes de marcá-lo como possível.";
     return;
   }
 
   $("approveMapBtn").disabled=true;
   $("rejectMapBtn").disabled=true;
+  $("mapLocalStatus").textContent="Enviando mapa para a fila segura de revisão...";
 
-  $("mapLocalStatus").textContent=
-    "Registrando mapa impossível no D1...";
-
-  const rejected=
-    safeReadStorage(
-      STORAGE_REJECTED
-    );
-
-  if(
-    !rejected.some(
-      item=>item.hash===currentMap.hash
-    )
-  ){
-    rejected.push({
-      seed:currentMap.seed,
-      hash:currentMap.hash,
-      rejectedAt:new Date().toISOString()
+  try{
+    const response=await apiFetch("/api/maps/feedback",{
+      method:"POST",
+      body:JSON.stringify({
+        vote:1,
+        completed:true,
+        seed:currentMap.seed,
+        map_hash:currentMap.hash,
+        generator_version:currentMap.generatorVersion,
+        player_count:Number(currentMap.playerCount)||2,
+        map:mapForDatabase(currentMap)
+      })
     });
 
-    safeWriteStorage(
-      STORAGE_REJECTED,
-      rejected.slice(-500)
-    );
+    if(response.library_status==="approved"&&response.map_id){
+      currentMap.databaseId=response.map_id;
+      currentMap.source="database";
+      $("mapSource").textContent="BANCO D1";
+      $("mapLocalStatus").textContent="✓ Este mapa já está aprovado na biblioteca.";
+      await markMapPlayed(currentMap.databaseId,true);
+    }else{
+      currentMap.submissionId=response.submission_id||null;
+      currentMap.source="pending";
+      $("mapSource").textContent="PENDENTE";
+      $("mapLocalStatus").textContent="✓ Feedback recebido. O mapa aguarda revisão antes de entrar na biblioteca global.";
+    }
+    setEndActions("next");
+  }catch(error){
+    console.error(error);
+    $("mapLocalStatus").textContent="Falha ao enviar feedback: "+error.message;
+    $("approveMapBtn").disabled=false;
+    $("rejectMapBtn").disabled=false;
+  }
+}
+
+async function rejectCurrentMap(){
+  if(gameMode==="offline"){rejectOfflineMap();return;}
+  if(role!=="host"||!currentMap)return;
+
+  if(currentMap.source==="database"||currentMap.databaseId){
+    $("mapLocalStatus").textContent="Mapas já aprovados não são alterados por jogadores.";
+    return;
+  }
+
+  $("approveMapBtn").disabled=true;
+  $("rejectMapBtn").disabled=true;
+  $("mapLocalStatus").textContent="Enviando feedback negativo para revisão...";
+
+  const rejected=safeReadStorage(STORAGE_REJECTED);
+  if(!rejected.some(item=>item.hash===currentMap.hash)){
+    rejected.push({seed:currentMap.seed,hash:currentMap.hash,rejectedAt:new Date().toISOString()});
+    safeWriteStorage(STORAGE_REJECTED,rejected.slice(-500));
   }
 
   try{
-    await apiFetch(
-      "/api/maps/reject",
-      {
-        method:"POST",
-        body:JSON.stringify({
-          seed:currentMap.seed,
-          map_hash:currentMap.hash,
-          generator_version:currentMap.generatorVersion,
-          player_count:Number(currentMap.playerCount)||2,
-          map:mapForDatabase(currentMap)
-        })
-      }
-    );
+    await apiFetch("/api/maps/feedback",{
+      method:"POST",
+      body:JSON.stringify({
+        vote:-1,
+        completed:false,
+        seed:currentMap.seed,
+        map_hash:currentMap.hash,
+        generator_version:currentMap.generatorVersion,
+        player_count:Number(currentMap.playerCount)||2,
+        map:mapForDatabase(currentMap)
+      })
+    });
 
-    $("mapLocalStatus").textContent=
-      "✕ Mapa rejeitado globalmente. Procurando a próxima fase...";
-
+    $("mapLocalStatus").textContent="✕ Feedback registrado. O mapa não é rejeitado globalmente sem revisão administrativa.";
     setEndActions("none");
     hideEnd();
-
     await loadNextMapForPair();
-
   }catch(error){
     console.error(error);
-
-    $("mapLocalStatus").textContent=
-      "Falha ao registrar rejeição: "+
-      error.message;
-
+    $("mapLocalStatus").textContent="Falha ao enviar feedback: "+error.message;
     $("rejectMapBtn").disabled=false;
   }
 }

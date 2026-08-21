@@ -1,73 +1,33 @@
-# Visões Cruzadas — V9.0.1
+# Visões Cruzadas — V9.1 Server Security
 
-Atualização focada exclusivamente no multiplayer: **anti-trapaça tolerante +
-suavização de rede**.
+A V9.1 preserva Percurso, Sobrevivência, LAVA, personagens procedurais e o netcode V9.0.1. A mudança é a fronteira de segurança entre o frontend público e Cloudflare/D1.
 
-## O que mudou
+## Principais proteções
 
-- o Host não trata pequenas divergências como trapaça;
-- tolerância considera intervalo real entre pacotes e sequências perdidas;
-- correções moderadas são limitadas e enviadas como `soft`;
-- `soft correction` é aplicada em vários frames, evitando teleporte;
-- `hard correction` ficou reservada para estados não finitos ou saltos absurdos;
-- snapshots ignoram pequenas diferenças normais da previsão do cliente;
-- jogadores remotos recebem interpolação visual;
-- Percurso, Sobrevivência e LAVA usam a mesma política;
-- plataformas móveis, obstáculos e a Ventania do LAVA têm tolerâncias maiores;
-- HUD mostra Ping, Ajustes e Bloqueios para diagnóstico.
+- Worker cria a sala do Host;
+- ticket WebSocket aleatório, curto e de uso único;
+- `role`/`player_id` deixam de ser identidade na URL;
+- API usa token de sessão HMAC assinado por `SESSION_SECRET`;
+- `ADMIN_SECRET` é separado e nunca é enviado ao navegador;
+- Durable Object determina role, slot e remetente real;
+- API deriva a lista de jogadores do roster ativo;
+- `/api/maps/approve` e `/api/maps/reject` públicos foram desativados;
+- mapas novos entram numa fila de revisão;
+- rate limiting por IP para APIs e por conexão para WebSocket;
+- limite de 32 jogadores e 128 KB por mensagem;
+- allowlist de tipos de mensagens por Host/cliente;
+- validação de estrutura, física e hash de mapas enviados;
+- CSP e `no-referrer` no GitHub Pages;
+- auditoria estática no GitHub Actions.
 
-## Como interpretar o HUD
+## Atualização obrigatória
 
-Exemplo:
+Diferente da V9.0.1, esta versão exige **três passos**, nesta ordem:
 
-```text
-Ping 74ms · Ajustes 2 · Bloqueios 0
-```
+1. configurar os segredos no Cloudflare e aplicar `server/migrations/0003_security_review_queue.sql`;
+2. publicar `server/src/index.js` como Worker V9.1;
+3. publicar o frontend V9.1 no GitHub Pages.
 
-- `Ajustes`: reconciliações suaves. Alguns são normais.
-- `Bloqueios`: correções rígidas por movimento muito fora do plausível.
-- Se `Bloqueios` crescer rapidamente durante jogo normal, o validador ainda
-  está agressivo demais.
+Leia primeiro: `server/SECURITY_SETUP.md`.
 
-No Host, os números representam decisões do validador. Nos clientes,
-representam correções recebidas.
-
-## Anti-trapaça centralizado
-
-Arquivo:
-
-```text
-site/js/netcode-smoothing.js
-```
-
-No começo dele existe:
-
-```javascript
-guardMode: "tolerant"
-```
-
-A API também oferece:
-
-```javascript
-NetSmoothing.setGuardMode("off");
-```
-
-`off` deve ser usado somente para diagnóstico. Nesse modo o validador ainda
-recusa valores não finitos pela camada de chamada, mas deixa de aplicar os
-limites normais de movimento.
-
-## Teste recomendado
-
-Teste primeiro com 2 jogadores online:
-
-1. Host parado e cliente correndo/pulando.
-2. Cliente usando plataformas móveis no Percurso.
-3. Sobrevivência com vários obstáculos empurrando o cliente.
-4. LAVA durante Ventania e ERUPÇÃO.
-5. Observe `Ajustes` e principalmente `Bloqueios`.
-
-Depois teste com 3–4 jogadores.
-
-## Backend
-
-Não é necessário alterar Worker, Durable Object ou D1.
+Nenhum segredo real está incluído neste pacote.

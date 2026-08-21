@@ -6,3 +6,13 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+!.env.example
+**/.dev.vars
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+**/.wrangler/
+backup-*.sql

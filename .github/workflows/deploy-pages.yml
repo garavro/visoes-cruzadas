@@ -40,6 +40,9 @@ jobs:
       - name: Validate characters
         run: node tools/validate-characters.mjs
 
+      - name: Security audit
+        run: node tools/security-audit.mjs
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
