@@ -937,6 +937,13 @@ function finishMatch(t,x,kind=null){
   setEndActions("none");
 
   if(kind==="victory"||t==="Vocês venceram!"||t==="Equipe venceu!"){
+
+    // >>> TOCA O SOM DE VITÓRIA AQUI <<<
+    if(window.gameAudio) {
+        window.gameAudio.stopBGM();     // Para a música de tensão
+        window.gameAudio.playVictory(); // Toca a musiquinha de sucesso
+    }
+    
     mapWasCompleted=true;
 
     if(
