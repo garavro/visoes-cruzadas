@@ -61,6 +61,23 @@ function safeReadStorage(key){
   }
 }
 
+// Exemplo em site/js/core.js ou bootstrap.js
+
+document.getElementById('btn-iniciar-jogo').addEventListener('click', async () => {
+    // 1. Desperta o contexto de áudio (requerido pelos navegadores)
+    await window.gameAudio.init();
+
+    // 2. Carrega as músicas/sons (recomendo criar uma pasta site/assets/audio/)
+    await window.gameAudio.loadSound('tema-fase-1', 'assets/audio/fase1.mp3');
+    await window.gameAudio.loadSound('explosao', 'assets/audio/explosao.ogg');
+
+    // 3. Toca a música de fundo
+    window.gameAudio.playBGM('tema-fase-1');
+    
+    // Inicia a renderização do jogo...
+    startGame();
+});
+
 function safeWriteStorage(key,value){
   try{
     localStorage.setItem(key,JSON.stringify(value));
