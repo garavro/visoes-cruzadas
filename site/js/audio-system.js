@@ -139,19 +139,20 @@ class ProceduralAudioManager {
             osc.connect(gain);
             gain.connect(this.sfxGain);
             
-            osc.type = 'square'; // Onda quadrada, clássico dos 8-bits
+            osc.type = 'square';
             
-            // Toca cada nota rapidamente em sequência (100 milissegundos por nota)
             const startTime = now + (index * 0.1);
-            const stopTime = startTime + 0.15; // Duração levemente maior que o intervalo para "juntar" os sons
+            const stopTime = startTime + 0.15;
             
             osc.frequency.setValueAtTime(freq, startTime);
             
-            // Envelope de volume: sobe rápido no início, cai no final
             gain.gain.setValueAtTime(0, startTime);
             gain.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
             
-            // A última nota (C5) fica soando por um pouco mais de tempo (um acorde final)
+            // >>> CORREÇÃO: O start precisa vir ANTES do stop no código <<<
+            osc.start(startTime);
+            
+            // Agora sim podemos agendar quando ele vai parar
             if (index === notes.length - 1) {
                 gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.6);
                 osc.stop(startTime + 0.6);
@@ -159,8 +160,6 @@ class ProceduralAudioManager {
                 gain.gain.linearRampToValueAtTime(0, stopTime);
                 osc.stop(stopTime);
             }
-            
-            osc.start(startTime);
         });
     }
     
