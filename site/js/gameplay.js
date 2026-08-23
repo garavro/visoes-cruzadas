@@ -499,6 +499,10 @@ function simulatePlayer(
     player.onGround=false;
     player.groundBlockId=null;
     player.jumpLock=true;
+
+// >>> SOM DE PULO AQUI <<<
+    if(window.gameAudio) window.gameAudio.playJump();
+    
   }
 
   if(!input.jump){
@@ -553,6 +557,10 @@ function simulatePlayer(
       gameState
     )
   ){
+
+    // >>> SOM DE EXPLOSÃO AQUI <<<
+    if(window.gameAudio) window.gameAudio.playExplosion();
+    
     finishMatch(
       "Fase perdida",
       `O Jogador ${player.id} tocou em um bloco azul mortal.`
@@ -610,6 +618,10 @@ function simulatePlayer(
       gameState
     )
   ){
+
+// >>> SOM DE EXPLOSÃO AQUI <<<
+    if(window.gameAudio) window.gameAudio.playExplosion();
+    
     finishMatch(
       "Fase perdida",
       `O Jogador ${player.id} tocou em um bloco azul mortal.`
@@ -628,6 +640,10 @@ function simulatePlayer(
     player.y+player.h>=
       WORLD.h-margin
   ){
+
+// >>> SOM DE EXPLOSÃO AQUI <<<
+    if(window.gameAudio) window.gameAudio.playExplosion();
+    
     finishMatch(
       "Fase perdida",
       `O Jogador ${player.id} encostou na borda.`
@@ -672,6 +688,9 @@ function eliminateMultiplayerPlayer(player,reason){
   if(!player||player.alive===false||state.finished){
     return;
   }
+
+  // >>> SOM DE EXPLOSÃO AQUI <<<
+  if(window.gameAudio) window.gameAudio.playExplosion();
 
   player.alive=false;
   player.eliminatedReason=reason;
@@ -719,6 +738,10 @@ function simulateMultiplayerPlayer(
     player.onGround=false;
     player.groundBlockId=null;
     player.jumpLock=true;
+
+    // >>> SOM DE PULO AQUI <<<
+    if(window.gameAudio) window.gameAudio.playJump();
+    
   }
 
   if(!input.jump){
