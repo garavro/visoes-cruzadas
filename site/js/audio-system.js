@@ -127,6 +127,43 @@ class ProceduralAudioManager {
         osc.stop(now + 0.1);
     }
 
+    playVictory() {
+        // Sequência de notas para um acorde maior e triunfante (C4, E4, G4, C5)
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        const now = this.ctx.currentTime;
+        
+        notes.forEach((freq, index) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            
+            osc.type = 'square'; // Onda quadrada, clássico dos 8-bits
+            
+            // Toca cada nota rapidamente em sequência (100 milissegundos por nota)
+            const startTime = now + (index * 0.1);
+            const stopTime = startTime + 0.15; // Duração levemente maior que o intervalo para "juntar" os sons
+            
+            osc.frequency.setValueAtTime(freq, startTime);
+            
+            // Envelope de volume: sobe rápido no início, cai no final
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+            
+            // A última nota (C5) fica soando por um pouco mais de tempo (um acorde final)
+            if (index === notes.length - 1) {
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.6);
+                osc.stop(startTime + 0.6);
+            } else {
+                gain.gain.linearRampToValueAtTime(0, stopTime);
+                osc.stop(stopTime);
+            }
+            
+            osc.start(startTime);
+        });
+    }
+    
     // --- MÚSICA DE FUNDO PROCEDURAL (BGM) ---
 
     startProceduralBGM() {
