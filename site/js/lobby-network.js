@@ -354,6 +354,12 @@ async function createModeRoom(modeId){
     return;
   }
 
+  // >>> INICIALIZA O ÁUDIO AQUI <<<
+  if(window.gameAudio) {
+    await window.gameAudio.init();
+    window.gameAudio.startProceduralBGM();
+  }
+
   gameMode="online";
   gameType=modeId;
   role="host";
@@ -377,7 +383,7 @@ async function createModeRoom(modeId){
   }
 }
 
-function launchOfflineMode(modeId){
+async function launchOfflineMode(modeId){
   const manifest=
     ModeSystem.manifest(
       modeId
@@ -390,6 +396,12 @@ function launchOfflineMode(modeId){
     $("menuStatus").textContent=
       "Este modo não oferece Couch Co-op.";
     return;
+  }
+
+  // >>> INICIALIZA O ÁUDIO AQUI <<<
+  if(window.gameAudio) {
+    await window.gameAudio.init();
+    window.gameAudio.startProceduralBGM();
   }
 
   ModeSystem.offlineStart(
@@ -405,6 +417,12 @@ $("joinRoom").onclick=async()=>{
   if(c.length<4||c.length>8){
     $("menuStatus").textContent="Digite um código válido.";
     return;
+  }
+
+  // >>> INICIALIZA O ÁUDIO AQUI <<<
+  if(window.gameAudio) {
+    await window.gameAudio.init();
+    window.gameAudio.startProceduralBGM();
   }
 
   role="client";
@@ -433,6 +451,12 @@ function returnToMenu(){
   ModeSystem.stop();
   gameStarted=false;
   cleanupConnectionForModeChange();
+
+  // >>> PARA A MÚSICA AO VOLTAR AO MENU <<<
+  if(window.gameAudio) {
+    window.gameAudio.stopBGM();
+  }
+
   gameMode="online";
   gameType=ModeSystem.defaultModeId();
   role=null;
