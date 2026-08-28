@@ -444,6 +444,16 @@ body.survival-mode #gameMsg{
     background: rgba(255, 255, 255, 0.4);
     transform: scale(0.95);
   }
+  #mapPanel {
+    display: none !important;
+  }
+  
+  #hud {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
 }
 
 /* =========================================
