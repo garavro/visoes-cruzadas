@@ -364,3 +364,114 @@ body.survival-mode #gameMsg{
   opacity:.72;
   margin-top:2px;
 }
+
+/* =========================================
+   RESPONSIVIDADE PARA CELULARES E TABLETS
+   ========================================= */
+
+@media (max-width: 768px) {
+  /* 1. Menus e Cards em Coluna Única */
+  .grid2 {
+    display: flex !important;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .box {
+    margin: 5px 0;
+    padding: 15px;
+  }
+
+  /* 2. HUD (Painel superior) mais compacto */
+  #hud {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    flex-direction: row;
+    flex-wrap: wrap; /* Permite quebrar linha se não couber */
+  }
+
+  /* Esconde textos secundários para dar mais espaço ao jogo */
+  #gameSubtitle, #transportText {
+    display: none !important;
+  }
+
+  /* 3. Controles de Toque (Botões de jogar no celular) */
+  #touchControls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: none; /* Permite tocar no cenário entre os botões */
+    z-index: 999;
+  }
+
+  .touchGroup {
+    display: flex;
+    gap: 15px;
+    pointer-events: auto; /* Reativa o toque apenas nos botões */
+  }
+
+  .touchBtn {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none; /* Evita selecionar texto ao apertar repetidamente */
+  }
+
+  /* Botão de pulo levemente diferente */
+  .touchBtn.jump {
+    width: 80px;
+    height: 80px;
+    border-color: rgba(255, 215, 0, 0.6); /* Borda amarelada para destaque */
+    margin-bottom: 10px; /* Sobe um pouco o botão de pulo para encaixar no polegar direito */
+  }
+  
+  /* Efeito visual ao pressionar */
+  .touchBtn.active {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(0.95);
+  }
+}
+
+/* =========================================
+   AVISO DE TELA EM PÉ (PORTRAIT)
+   ========================================= */
+@media (max-width: 768px) and (orientation: portrait) {
+  #gameArea::after {
+    content: "Gire o celular para jogar";
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.2);
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    z-index: 1000;
+    pointer-events: none;
+  }
+  
+  /* Esconde os controles de toque se o celular estiver em pé, 
+     já que o jogo de plataforma é injogável assim */
+  #touchControls {
+    display: none !important;
+  }
+}
+
