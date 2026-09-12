@@ -1,0 +1,7 @@
+{
+  "id": "batalha",
+  "name": "Batalha",
+  "description": "Enfrente ondas de slimes. Cada jogador só pode derrotar os inimigos da sua própria cor.",
+  "online": true,
+  "offline": true
+}
