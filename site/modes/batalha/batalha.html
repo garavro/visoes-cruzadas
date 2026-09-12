@@ -1,1 +1,28 @@
+<!-- Ficheiro: site/modes/batalha/batalha.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modo Batalha</title>
+    <!-- Conecta o ficheiro de estilos que vamos criar no próximo passo -->
+    <link rel="stylesheet" href="batalha.css">
+</head>
+<body>
 
+    <!-- Interface Principal da Batalha -->
+    <div id="game-container">
+        <!-- O Slime de exemplo usando o CSS que criamos -->
+        <div id="mob-exemplo" class="mob-slime" style="left: 50%; top: 50%;"></div>
+        
+        <!-- Interface de Usuário (HUD) -->
+        <div id="hud">
+            <h2>Modo Batalha</h2>
+            <button id="btn-voltar">Voltar ao Menu</button>
+        </div>
+    </div>
+
+    <!-- Conecta o ficheiro JavaScript como um Módulo -->
+    <script src="batalha.js" type="module"></script>
+</body>
+</html>
