@@ -266,12 +266,6 @@ function drawWorld(renderCtx,renderCanvas,drawState,viewer){
     const onlineDynamic=
       multiplayerVision&&
       player.slot!==undefined;
-// ... continua com o resto da sua função original ...
-
-  for(const player of drawState.players||[]){
-    const onlineDynamic=
-      multiplayerVision&&
-      player.slot!==undefined;
 
     const slot=
       onlineDynamic
