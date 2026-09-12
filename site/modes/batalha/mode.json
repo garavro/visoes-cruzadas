@@ -1,8 +1,16 @@
 {
-  "apiVersion": 1,
   "id": "batalha",
   "name": "Batalha",
   "description": "Enfrente ondas de slimes. Cada jogador só pode derrotar os inimigos da sua própria cor.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "./index.js",
+  "enabled": true,
   "online": true,
-  "offline": true
+  "offline": true,
+  "minPlayers": 2,
+  "maxPlayers": null,
+  "order": 10,
+  "accent": "yellow",
+  "bodyClass": ""
 }
