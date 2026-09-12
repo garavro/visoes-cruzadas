@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - Visões Cruzadas</title>
+    <style>
+        /* === ESTILOS GLOBAIS E RESPONSIVIDADE === */
+        :root {
+            --bg-main: #050810;
+            --bg-panel: #151d2b;
+            --btn-bg: #263552;
+            --btn-hover: #3a4f7a;
+            --text-main: #ffffff;
+            --yellow: rgba(255, 216, 74, 0.9);
+            --red: rgba(255, 91, 104, 0.92);
+            --blue: rgba(56, 189, 248, 0.85);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Container principal responsivo */
+        .container {
+            width: 90%;
+            max-width: 600px; /* Limita a largura em monitores grandes */
+            background-color: var(--bg-panel);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        /* Controle de Telas (Views) */
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Textos */
+        h1 {
+            font-size: 28px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #9fc6ff, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p.subtitle {
+            color: #9ca3af;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* Botões */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: var(--btn-bg);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--btn-hover);
+            transform: scale(1.02);
+        }
+
+        button.back-btn {
+            background-color: transparent;
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            margin-top: 20px;
+        }
+        button.back-btn:hover {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        /* Grade de Personagens (Responsiva) */
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .char-card {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .char-card:hover {
+            border-color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .char-color {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 auto 10px auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- TELA 1: MENU PRINCIPAL -->
+        <div id="main-menu" class="screen active">
+            <h1>Visões Cruzadas</h1>
+            <p class="subtitle">Multi-Mode Network Development Repository</p>
+            
+            <div class="btn-group">
+                <button onclick="switchScreen('character-menu')">Selecionar Personagem</button>
+                <button onclick="switchScreen('offline-menu')">Jogar Offline (Couch Co-op)</button>
+                <button onclick="switchScreen('online-menu')">Jogar Online (Multiplayer)</button>
+            </div>
+        </div>
+
+        <!-- TELA 2: SELEÇÃO DE PERSONAGEM -->
+        <div id="character-menu" class="screen">
+            <h1>Personagens</h1>
+            <p class="subtitle">Escolha seu avatar para as partidas</p>
+            
+            <div class="character-grid">
+                <!-- Cores baseadas no Player 1, Player 2 e Mobs -->
+                <div class="char-card" onclick="selectCharacter('Amarelo')">
+                    <div class="char-color" style="background-color: var(--yellow);"></div>
+                    <span>P1 (Amarelo)</span>
+                </div>
+                <div class="char-card" onclick="selectCharacter('Vermelho')">
+                    <div class="char-color" style="background-color: var(--red);"></div>
+                    <span>P2 (Vermelho)</span>
+                </div>
+                <div class="char-card" onclick="selectCharacter('Azul')">
+                    <div class="char-color" style="background-color: var(--blue);"></div>
+                    <span>Azul</span>
+                </div>
+            </div>
+            <button class="back-btn" onclick="switchScreen('main-menu')">Voltar</button>
+        </div>
+
+        <!-- TELA 3: MODOS OFFLINE -->
+        <div id="offline-menu" class="screen">
+            <h1>Couch Co-op (Offline)</h1>
+            <p class="subtitle">Tela dividida no mesmo dispositivo</p>
+            
+            <div class="btn-group">
+                <button onclick="startGame('offline', 'course')">Modo 1: Percurso</button>
+                <button onclick="startGame('offline', 'survival')">Modo 2: Sobrevivência</button>
+                <button onclick="startGame('offline', 'batalha')">Modo Batalha</button>
+                <button onclick="startGame('offline', 'lava')">Modo Lava</button>
+                <button class="back-btn" onclick="switchScreen('main-menu')">Voltar</button>
+            </div>
+        </div>
+
+        <!-- TELA 4: MODOS ONLINE -->
+        <div id="online-menu" class="screen">
+            <h1>Lobby Multiplayer</h1>
+            <p class="subtitle">Conecte-se com jogadores via rede</p>
+            
+            <div class="btn-group">
+                <button onclick="startGame('online', 'course')">Criar Sala: Percurso</button>
+                <button onclick="startGame('online', 'survival')">Criar Sala: Sobrevivência</button>
+                <button onclick="startGame('online', 'batalha')">Criar Sala: Batalha</button>
+                <button style="border: 1px dashed var(--yellow); margin-top: 10px;" onclick="joinRoom()">Entrar em uma Sala Existente</button>
+                <button class="back-btn" onclick="switchScreen('main-menu')">Voltar</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Função para alternar entre as telas (Sub-telas)
+        function switchScreen(screenId) {
+            // Esconde todas as telas
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                screen.classList.remove('active');
+            });
+
+            // Mostra apenas a tela desejada
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // Função para simular a seleção de personagem
+        function selectCharacter(name) {
+            alert("Personagem selecionado: " + name);
+            // Aqui você pode salvar a escolha em uma variável global (ex: window.myColor = name;)
+            switchScreen('main-menu');
+        }
+
+        // Função para simular o início de uma partida
+        function startGame(mode, type) {
+            console.log(`Iniciando jogo... Modo: ${mode} | Tipo: ${type}`);
+            alert(`Iniciando ${type.toUpperCase()} no modo ${mode.toUpperCase()}!`);
+            
+            // Aqui entrará a lógica de conexão com o WebSocket ou a inicialização do canvas do jogo.
+            // Exemplo de integração com seu código antigo:
+            // gameMode = mode;
+            // gameType = type;
+            // if(mode === 'online') { role = 'host'; showLobby(); connectSignal(); }
+        }
+
+        // Função para simular a entrada em uma sala
+        function joinRoom() {
+            const code = prompt("Digite o código da sala (Ex: ABCDEF):");
+            if(code && code.trim() !== "") {
+                alert("Conectando à sala: " + code.toUpperCase());
+                // Integração: roomCode = code; role = 'client'; showLobby(); connectSignal();
+            }
+        }
+    </script>
+</body>
+</html>
