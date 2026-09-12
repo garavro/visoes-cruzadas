@@ -898,7 +898,82 @@ function hostUpdate(dt){
       "victory"
     );
   }
+
+// Adicione isso no final da sua função hostUpdate(dt)
+if (gameType === "batalha" && window.batalhaState) {
+    let mobsVivos = 0;
+
+    for (const mob of window.batalhaState.mobs) {
+        if (mob.morto) continue;
+        mobsVivos++;
+
+        // Gravidade do mob
+        mob.vy += GRAVITY * dt;
+        mob.x += mob.vx * dt;
+        mob.y += mob.vy * dt;
+
+        // Bater nas bordas da tela e virar
+        if (mob.x <= 0 || mob.x + mob.w >= WORLD.w) {
+            mob.vx *= -1;
+            mob.x = mob.x <= 0 ? 0 : WORLD.w - mob.w;
+        }
+
+        // Bater no chão (plataformas de suporte da arena)
+        const solids = solidRuntimeBlocks(state);
+        mob.onGround = false;
+        for (const block of solids) {
+            if (overlap(mob, block) && mob.vy > 0) {
+                mob.y = block.y - mob.h;
+                mob.vy = 0;
+                mob.onGround = true;
+                
+                // Pulo do Slime (simulando a investida)
+                if (Math.random() < 0.02) {
+                    mob.vy = -JUMP_SPEED * 0.6;
+                    mob.vx = (Math.random() > 0.5 ? 1 : -1) * 150;
+                }
+            }
+        }
+
+        // Colisão com os Jogadores
+        for (const player of state.players) {
+            if (player.alive === false) continue;
+
+            if (overlap(player, mob)) {
+                // Checa a cor: P1 é amarelo (slot 0), P2 é vermelho (slot 1)
+                const isPlayerAmarelo = player.slot === 0;
+                const isMobAmarelo = mob.color === "yellow";
+
+                if ((isPlayerAmarelo && isMobAmarelo) || (!isPlayerAmarelo && !isMobAmarelo)) {
+                    // Jogador acerta o mob se pular em cima (estilo Mario)
+                    if (player.vy > 0 && player.y < mob.y) {
+                        mob.morto = true;
+                        player.vy = -JUMP_SPEED * 0.8; // Quica no monstro
+                        if (window.gameAudio) window.gameAudio.playHit();
+                    } else {
+                        // Jogador toma dano se encostar de lado
+                        eliminateMultiplayerPlayer(player, "foi devorado por um slime");
+                    }
+                } else {
+                    // Cor diferente: morre direto
+                    eliminateMultiplayerPlayer(player, "tocou num slime da cor errada");
+                }
+            }
+        }
+    }
+
+    // Se todos morrerem, avança de fase
+    if (mobsVivos === 0 && !state.finished) {
+        window.batalhaState.wave++;
+        if (window.gameAudio) window.gameAudio.playVictory();
+        spawnWave(window.batalhaState.wave);
+        $("gameSubtitle").textContent = `Onda ${window.batalhaState.wave} iniciada! Cuidado!`;
+    }
 }
+  
+}
+
+
 
 function setEndActions(mode){
   const decision=$("generatedMapDecision");
