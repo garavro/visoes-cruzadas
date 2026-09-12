@@ -1,4 +1,4 @@
-ModeSystem.registerMode("batalha", {
+ModeSystem.register("batalha", {
     onStart: () => {
         // Inicializa o estado do modo Batalha
         window.batalhaState = {
@@ -7,7 +7,7 @@ ModeSystem.registerMode("batalha", {
             spawnTimer: 0
         };
         
-        // Substitui a meta do modo corrida por sobrevivência a ondas
+        // Esconde a porta de saída do modo corrida para focar na sobrevivência
         goal = { x: -1000, y: -1000, w: 0, h: 0 }; 
         
         spawnWave(window.batalhaState.wave);
@@ -33,7 +33,8 @@ function spawnWave(waveNumber) {
             // Metade vermelho (P2), metade amarelo (P1)
             color: i % 2 === 0 ? "yellow" : "red", 
             onGround: false,
-            animPhase: Math.random() * 100
+            animPhase: Math.random() * 100,
+            morto: false // Define como vivo
         });
     }
 }
