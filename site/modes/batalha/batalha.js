@@ -1,42 +1,50 @@
-// Ficheiro: site/modes/batalha/batalha.js
+// site/modes/batalha/batalha.js
 
-// Exemplo de como importar os mapas (descomente e ajuste o caminho quando tiver o ficheiro do percurso)
-// import { mapasPercurso } from '../percurso/mapas.js'; 
+// Importa os mapas do modo course (ajuste o caminho exato do export no seu projeto)
+import { mapasCourse } from '../course/mapas.js'; 
 
-console.log("Modo Batalha Inicializado com sucesso!");
+const TILE_PAREDE = 1;
+const TILE_PORTA_SAIDA = 2;
 
-// --- FUNÇÃO PARA GERAR O MAPA DA BATALHA (Sem Portas) ---
 function gerarMapaBatalha(nivel) {
-    console.log("Gerando mapa da batalha...");
+    const mapaOriginal = mapasCourse[nivel];
     
-    // Simulação do carregamento do mapa. 
-    // Na prática, você usaria o JSON.parse() na variável 'mapasPercurso[nivel]'
-    
-    /* 
-    let mapaBatalha = JSON.parse(JSON.stringify(mapasPercurso[nivel]));
+    // Cria uma cópia profunda para não alterar o mapa original
+    let mapaBatalha = JSON.parse(JSON.stringify(mapaOriginal));
+
+    // Remove as portas de saída, transformando-as em paredes
     for (let y = 0; y < mapaBatalha.length; y++) {
         for (let x = 0; x < mapaBatalha[y].length; x++) {
-            if (mapaBatalha[y][x] === 2) { // 2 = ID da porta
-                mapaBatalha[y][x] = 1; // 1 = ID da Parede (tranca a porta)
+            if (mapaBatalha[y][x] === TILE_PORTA_SAIDA) {
+                mapaBatalha[y][x] = TILE_PAREDE; 
             }
         }
     }
     return mapaBatalha;
-    */
 }
 
-// --- LÓGICA DO BOTÃO VOLTAR ---
-document.getElementById('btn-voltar').addEventListener('click', () => {
-    // Redireciona de volta para a pasta raiz (ajuste conforme o nome do seu menu principal)
+// Lógica de ataque sem restrição de cor ou invisibilidade
+export function processarAtaque(jogador, mobs) {
+    mobs.forEach(mob => {
+        if (verificarColisao(jogador.caixaAtaque, mob.hitbox)) {
+            // O mob recebe dano mesmo sendo de outra cor
+            mob.receberDano(jogador.poderAtaque);
+            if(typeof mob.revelarBrevemente === 'function') {
+                mob.revelarBrevemente();
+            }
+        }
+    });
+}
+
+// Botão de voltar
+document.getElementById('btn-voltar')?.addEventListener('click', () => {
     window.location.href = '../../index.html'; 
 });
 
-// Inicialização básica ao carregar a tela
 function iniciarBatalha() {
-    // Chama as configurações de cenário
-    gerarMapaBatalha(1);
-    
-    // Aqui entrará o seu loop de jogo (requestAnimationFrame)
+    const mapaAtual = gerarMapaBatalha(1);
+    console.log("Modo Batalha iniciado com mapa limpo.", mapaAtual);
+    // Insira aqui a chamada para o loop do seu jogo (requestAnimationFrame)
 }
 
 iniciarBatalha();
