@@ -224,7 +224,7 @@ function drawWorld(renderCtx,renderCanvas,drawState,viewer){
     renderCtx.strokeRect(block.x,block.y,block.w,block.h);
     renderCtx.setLineDash([]);
 
-    if(block.behavior?.type==="moving"){
+   if(block.behavior?.type==="moving"){
       renderCtx.fillStyle="rgba(0,0,0,.55)";
       renderCtx.font="bold 14px Arial";
       renderCtx.fillText(
@@ -233,7 +233,40 @@ function drawWorld(renderCtx,renderCanvas,drawState,viewer){
         block.y+17
       );
     }
+  } // Fim do loop de renderBlocks
+
+  // >>> INÍCIO DO CÓDIGO DOS SLIMES <<<
+  if (gameType === "batalha" && window.batalhaState) {
+      for (const mob of window.batalhaState.mobs) {
+          if (mob.morto) continue;
+
+          // Efeito "Squash and Stretch" animado
+          mob.animPhase = (mob.animPhase || 0) + 0.1;
+          const stretch = mob.onGround ? 1 + Math.sin(mob.animPhase) * 0.1 : 1.2;
+          const squash = mob.onGround ? 1 - Math.sin(mob.animPhase) * 0.1 : 0.8;
+
+          const drawW = mob.w * squash;
+          const drawH = mob.h * stretch;
+          const offsetX = (mob.w - drawW) / 2;
+          const offsetY = mob.h - drawH;
+
+          // Pinta da cor certa dependendo se é o Slime do P1 (Amarelo) ou P2 (Vermelho)
+          renderCtx.fillStyle = mob.color === "yellow" ? "#ffd700" : "#ff3333";
+          renderCtx.fillRect(mob.x + offsetX, mob.y + offsetY, drawW, drawH);
+
+          // Olhos do slime
+          renderCtx.fillStyle = "#000";
+          renderCtx.fillRect(mob.x + offsetX + 8, mob.y + offsetY + 8, 4, 4);
+          renderCtx.fillRect(mob.x + offsetX + 24, mob.y + offsetY + 8, 4, 4);
+      }
   }
+  // >>> FIM DO CÓDIGO DOS SLIMES <<<
+
+  for(const player of drawState.players||[]){
+    const onlineDynamic=
+      multiplayerVision&&
+      player.slot!==undefined;
+// ... continua com o resto da sua função original ...
 
   for(const player of drawState.players||[]){
     const onlineDynamic=
